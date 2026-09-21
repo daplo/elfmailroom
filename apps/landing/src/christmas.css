@@ -1,0 +1,170 @@
+/* Small, landing-only Christmas details. */
+.christmas-lights{position:absolute;z-index:2;top:0;left:3%;width:92%;height:auto;overflow:visible;pointer-events:none}
+.christmas-bulb{color:#bd9550;filter:drop-shadow(0 2px 5px #c39a5060);animation:christmas-glow 1.8s ease-in-out var(--bulb-delay) 2}
+.christmas-bulb.bulb-1{color:#b95b4e}.christmas-bulb.bulb-2{color:#77916a}
+.christmas-holly{width:74px;height:50px;pointer-events:none}
+.hero-holly{position:absolute;bottom:16%;left:2%;transform:rotate(-16deg);z-index:2}
+.christmas-spark{position:absolute;z-index:2;color:#b48e49;pointer-events:none;line-height:1;animation:christmas-sparkle 2s ease-in-out 2}
+.spark-one{top:26%;left:5%;font-size:40px}.spark-two{right:7%;top:29%;font-size:21px;animation-delay:.4s}
+.snow-button{position:absolute;z-index:4;bottom:6%;right:12%;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 16px;border:1px solid #d9cfb6;border-radius:24px;background:#fffaf0ed;box-shadow:0 3px 12px #5b513210;color:#526a51;font:12px 'DM Sans',sans-serif;transform:rotate(-3deg);transition:transform .2s,background .2s,box-shadow .2s}
+.snow-button:hover,.snow-button:focus-visible{transform:rotate(0);background:#fffdf5;box-shadow:0 4px 16px #5b51321c}
+.snow-button[aria-pressed="true"]{background:#eaf0e5;border-color:#9eaf90}
+.snow-button svg{transition:transform .4s}.snow-button:hover svg{transform:rotate(90deg)}
+.christmas-snow{position:absolute;inset:12% 3% 12%;overflow:hidden;pointer-events:none;z-index:3;mask-image:linear-gradient(transparent,#000 10%,#000 85%,transparent)}
+.christmas-snow>span{position:absolute;left:var(--snow-x);top:-12px;width:var(--snow-size);height:var(--snow-size);border-radius:50%;background:#fffdf5;box-shadow:0 0 3px #72816b80;opacity:0;animation:christmas-snowfall 3.6s linear var(--snow-delay) both}
+.sample-holly{position:absolute;right:0;top:58px;z-index:2;transform:rotate(20deg)}
+.christmas-landing .sample-tabs button{transition:transform .2s,background .2s,box-shadow .2s}
+.christmas-landing .sample-tabs button:hover{transform:translateY(-3px);box-shadow:0 4px 10px #526a5112}
+.christmas-landing .step-art>span,.christmas-landing .step-art>i{transition:transform .3s}
+.christmas-landing .step:hover .step-art>span{transform:rotate(0) translateY(-5px)}
+.christmas-landing .step:hover .step-art>i{transform:rotate(35deg) scale(1.2)}
+.christmas-landing .button>svg{transition:transform .2s}.christmas-landing .button:hover>svg{transform:translateX(4px)}
+.christmas-landing .logo-stamp{transition:transform .3s}.christmas-landing .logo:hover .logo-stamp{transform:rotate(5deg)}
+.christmas-landing .faq summary svg{transition:transform .25s}.christmas-landing .faq details[open]>p{animation:christmas-unfold .25s ease-out}
+.christmas-landing .product.featured::before{content:'';position:absolute;top:-1px;left:24px;right:24px;height:4px;border-radius:0 0 3px 3px;background:repeating-linear-gradient(125deg,#ad443e 0 8px,#f9f3e3 8px 16px,#587653 16px 24px,#f9f3e3 24px 32px)}
+.christmas-landing .final-cta{position:relative}.christmas-landing .final-cta::before{content:'✧';position:absolute;top:25px;left:49%;color:#b48e49;font:42px Georgia,serif;pointer-events:none}
+@keyframes christmas-glow{50%{filter:drop-shadow(0 2px 8px #d8b15eb0);opacity:.65}}
+@keyframes christmas-sparkle{50%{transform:scale(.8) rotate(12deg);opacity:.5}}
+@keyframes christmas-snowfall{0%{opacity:0;top:0;transform:translateX(0)}15%{opacity:.95}85%{opacity:.85}100%{opacity:0;top:100%;transform:translateX(var(--snow-drift))}}
+@keyframes christmas-unfold{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+@media(max-width:760px){.christmas-lights{top:10px;left:8%;width:84%}.hero-holly{width:58px;left:6%;bottom:18%}.spark-one{font-size:29px;left:10%;top:32%}.spark-two{font-size:17px;right:9%;top:35%}.snow-button{right:8%;bottom:2%;font-size:11px}.sample-holly{width:60px;right:2px}.christmas-landing .final-cta::before{left:auto;right:24px;top:12px;font-size:28px}}
+@media(prefers-reduced-motion:reduce){.christmas-snow>span{top:calc(12% + var(--snow-x)*.7);opacity:.9}.christmas-landing .step:hover .step-art>span,.christmas-landing .step:hover .step-art>i,.christmas-landing .sample-tabs button:hover,.christmas-landing .button:hover>svg,.christmas-landing .logo:hover .logo-stamp,.snow-button:hover svg{transform:none}}
+
+/* A trail of little keepsakes from the mailroom to the footer. */
+.sample-design-picker{border:0;margin:0 0 24px;padding:0;min-width:0}
+.sample-design-picker legend{width:100%;text-align:center;font-size:12px;font-weight:600;color:var(--green);margin-bottom:15px}
+.sample-design-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.sample-design-option{position:relative;display:flex;flex-direction:column;align-items:center;gap:9px;min-width:0;margin:0;padding:12px 7px 10px;border:1px solid #ddd5c2;border-radius:9px;background:#fffdf680;cursor:pointer;transition:border-color .2s,background .2s,transform .2s}
+.sample-design-option.selected{border-color:#79956d;background:#eff3e5;box-shadow:inset 0 0 0 1px #79956d}
+.sample-design-option:hover{transform:translateY(-3px);border-color:#9cab86}
+.sample-design-option:has(input:focus-visible){outline:3px solid #bc8b3e;outline-offset:3px}
+.sample-design-paper{display:block;position:relative;width:100%;max-width:90px;aspect-ratio:2/3;box-shadow:0 3px 7px #69573718}
+.sample-design-paper>img{display:block;width:100%;height:100%;object-fit:contain}
+.sample-design-lines{position:absolute;left:22%;right:22%;top:29%;height:26%;opacity:.45;background:repeating-linear-gradient(to bottom,#95896c 0 1px,transparent 1px 5px);pointer-events:none}
+.sample-design-name{font-size:10px;line-height:1.45;text-align:center;overflow-wrap:anywhere;color:#405b41}
+.sample-design-check{position:absolute;right:5px;top:5px;display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#fffdf5;border:1px solid #b7c6a7;color:#496c42}
+.sample-design-option.selected .sample-design-check{background:#496c42;color:#fffdf5;border-color:#496c42}
+.selected-sample{position:relative}
+.selected-sample>.sample-holly{top:-22px;right:-16px}
+.sample-caption strong{display:block;color:#607451;font-weight:500;font-size:12px;margin-bottom:6px}
+@media(max-width:760px){.christmas-landing .sample-scene{width:100%;min-width:0}.sample-design-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.sample-design-option{padding:12px 9px}.sample-design-paper{max-width:76px}.sample-design-name{font-size:11px}.selected-sample>.sample-holly{right:-10px;top:-19px}}
+@media(prefers-reduced-motion:reduce){.sample-design-option:hover{transform:none}}
+.christmas-landing{background-image:radial-gradient(#b5a27812 .65px,transparent .65px);background-size:9px 9px}
+.christmas-doodle{display:block;width:76px;height:72px;flex-shrink:0;overflow:visible}
+.christmas-landing .announcement{position:relative;border-bottom:3px solid transparent;border-image:repeating-linear-gradient(120deg,#cfad74 0 8px,#45634b 8px 17px,#b56353 17px 25px,#45634b 25px 34px) 3}
+.christmas-landing .navbar nav a{position:relative;padding-block:6px}
+.christmas-landing .navbar nav a::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:#b58e51;transform:scaleX(0);transform-origin:left;transition:transform .25s}
+.christmas-landing .navbar nav a:hover::after,.christmas-landing .navbar nav a:focus-visible::after{transform:scaleX(1)}
+.christmas-landing .trust-strip{border-block:1px dashed #c7cfb8;background:#f0f1e6;padding-block:18px}
+.christmas-landing .trust-strip .christmas-doodle{width:34px;height:32px;transition:transform .25s}
+.christmas-landing .trust-strip>span:hover .christmas-doodle{transform:rotate(-9deg) translateY(-2px)}
+.christmas-landing .how-section{position:relative;padding-top:28px}
+.christmas-landing .how-section .section-heading{margin-bottom:38px}
+.hanging-ornaments{position:absolute;right:max(30px,calc((100% - 1120px)/2));top:0;width:120px;height:144px;pointer-events:none}
+.hanging-ornaments>svg{display:block;width:100%;height:100%}
+.hanging-bauble{transform-origin:29px 55px}.hanging-star{transform-origin:91px 89px}
+.christmas-landing .how-section:hover .hanging-bauble{animation:ornament-sway 2.4s ease-in-out 1}
+.christmas-landing .how-section:hover .hanging-star{animation:ornament-sway 2.4s ease-in-out .2s 1}
+.festive-flourish{display:flex;align-items:center;justify-content:center;gap:18px;margin:0 auto 12px;max-width:265px}
+.festive-flourish>span{flex:1;border-top:1px solid #d8cdb2;position:relative}
+.festive-flourish>span::after{content:'';position:absolute;width:5px;height:5px;background:#c7ab71;transform:rotate(45deg);top:-3px;right:0}
+.festive-flourish>span:last-child::after{right:auto;left:0}
+.festive-flourish .christmas-doodle{width:64px;height:62px}
+.personal-copy .festive-flourish{justify-content:flex-start;margin:0 0 12px;max-width:180px}
+.christmas-landing .sample-tabs button{display:inline-flex;gap:6px;align-items:center;min-height:36px}
+.christmas-landing .sample-tabs button.active>svg{color:#a94e43;transform:rotate(-10deg)}
+.christmas-landing .sample-scene{border-radius:36% 40% 30% 35%;background:radial-gradient(ellipse,#e8d5ad50,transparent 72%)}
+.christmas-landing .step-art>span{display:grid;place-items:center;padding:0;border-radius:5px 5px 9px 5px}
+.christmas-landing .step-art .christmas-doodle{width:80px;height:78px}
+.christmas-landing .step-art.envelope>span{background:#f0e3cb;border:1px solid #d9c8ad}
+.christmas-landing .step-art.reply>span{background:#e7ecda}
+.christmas-landing .steps::before{border-color:#c7b991;border-top-width:2px;opacity:.65}
+.christmas-landing .step-title>span{background:#fffaf0;border-color:#d4c8ab;color:#9c7450}
+.christmas-landing .parent-section{background-color:#eaf0e5;background-image:radial-gradient(#7284650e 1px,transparent 1px);background-size:14px 14px;border-block:1px dashed #c1cfb5}
+.christmas-landing .parent-points article{padding:14px;border:1px solid transparent;border-radius:12px;transition:background .25s,border-color .25s,transform .25s}
+.christmas-landing .parent-points article:hover{background:#f9faf1a6;border-color:#d5deca;transform:translateX(4px)}
+.christmas-landing .parent-points{gap:12px}
+.christmas-landing .parent-points article>span{display:grid;place-items:center;flex-shrink:0;transition:transform .25s,background .25s}
+.christmas-landing .parent-points article:hover>span{transform:rotate(-8deg);background:#fff9e9}
+.cozy-surprise{position:relative;text-align:center;width:100%;max-width:310px;margin:0 auto 2px}
+.cozy-surprise-button{display:inline-flex;flex-direction:column;align-items:center;gap:3px;max-width:100%;padding:6px 16px 3px;background:none;border:0;border-radius:18px;color:#89704b;-webkit-tap-highlight-color:transparent}
+.cozy-surprise-button:focus-visible{outline:2px dashed #ae8752;outline-offset:4px}
+.surprise-drawing{display:block;position:relative}
+.surprise-drawing>.christmas-doodle{transform-origin:center 25%;transition:transform .3s,filter .3s}
+.cozy-surprise-button:hover .surprise-drawing>.christmas-doodle{transform:rotate(-7deg);filter:drop-shadow(0 4px 5px #a7895324)}
+.cozy-surprise-button:active .surprise-drawing>.christmas-doodle{transform:scale(.94)}
+.surprise-label{font:21px/1.2 ElfSignature,cursive}
+.surprise-label>span{display:inline-block;color:#a84f45;transition:transform .2s}
+.cozy-surprise-button:hover .surprise-label>span{transform:translate(2px,-2px)}
+.surprise-message{display:block;min-height:3em;margin-top:3px;color:#8e5144;font:18px/1.5 ElfSignature,cursive}
+.surprise-sparkles{position:absolute;inset:0;pointer-events:none}
+.surprise-sparkles>i{position:absolute;font:21px Georgia,serif;color:#b7924f;opacity:0;transform:scale(.4)}
+.surprise-sparkles>i:nth-child(1){left:-13px;top:16px;--spark-x:-10px;--spark-y:-12px}
+.surprise-sparkles>i:nth-child(2){right:-12px;top:3px;--spark-x:10px;--spark-y:-14px}
+.surprise-sparkles>i:nth-child(3){right:-17px;bottom:2px;color:#af594a;--spark-x:12px;--spark-y:-9px}
+.surprise-mug{margin:24px 0 0;max-width:310px}
+.surprise-mug .christmas-doodle{width:96px;height:90px}
+.surprise-mug .surprise-message{font-size:19px}
+.surprise-gift{margin:-8px auto 4px}
+.gift-lid{transform-origin:47px 35px;transition:transform .3s}
+.surprise-gift .cozy-surprise-button:hover .gift-lid{transform:translateY(-4px) rotate(-4deg)}
+.cocoa-steam{opacity:.65}
+.cozy-surprise.has-arrived .surprise-drawing>.christmas-doodle,.festive-flourish.has-arrived .christmas-doodle,.festive-sendoff.has-arrived .christmas-doodle{animation:keepsake-arrive .9s ease-out 1}
+.cozy-surprise.is-playing .surprise-drawing>.christmas-doodle{animation:cozy-wiggle .85s ease-in-out 2}
+.cozy-surprise.is-playing .surprise-sparkles>i{animation:little-magic 1.6s ease-out both}
+.cozy-surprise.is-playing .surprise-sparkles>i:nth-child(2){animation-delay:.12s}
+.cozy-surprise.is-playing .surprise-sparkles>i:nth-child(3){animation-delay:.24s}
+.cozy-surprise.is-playing .surprise-message{animation:christmas-unfold .3s ease-out}
+.surprise-mug.is-playing .surprise-drawing>.christmas-doodle,.surprise-gift.is-playing .surprise-drawing>.christmas-doodle{animation:none;transform:none}
+.surprise-mug.is-playing .cocoa-steam{animation:cocoa-warmth 1.2s ease-out 2}
+.surprise-gift.is-playing .gift-lid{transform:translateY(-13px) rotate(-9deg)}
+.christmas-landing .product.featured{background:#f7f5e9;border-color:#c8cdaa;border-radius:14px;box-shadow:0 12px 36px #735d3610;padding-top:28px;outline:1px dashed #d6c6a3;outline-offset:-8px;transition:box-shadow .3s}
+.christmas-landing .product.featured:focus-within,.christmas-landing .product.featured:hover{box-shadow:0 15px 40px #735d3620}
+.christmas-landing .product.featured::before{height:6px;left:22px;right:22px}
+.christmas-landing .product h3{text-align:center}
+.christmas-landing .faq{padding-top:20px}
+.christmas-landing .faq .festive-flourish{margin-bottom:10px}
+.christmas-landing .faq-list{border:0;display:grid;gap:10px}
+.christmas-landing .faq-list>details{border:1px solid #e0dac9;border-radius:10px;padding-inline:20px;background:#fffdf780;transition:background .2s,border-color .2s,box-shadow .2s}
+.christmas-landing .faq-list>details:hover,.christmas-landing .faq-list>details[open]{background:#fffaf0;border-color:#cdbb95;box-shadow:0 3px 12px #93794c0b}
+.faq-question{display:flex;align-items:center;gap:13px;line-height:1.5}
+.faq-question>svg{color:#b39356;flex-shrink:0}
+.christmas-landing .faq details[open] .faq-question>svg{transform:none;fill:#e4cd9433}
+.christmas-landing .faq summary>svg{flex-shrink:0}
+.christmas-landing .faq details p{padding-left:29px}
+.festive-sendoff{display:flex;align-items:center;gap:10px;margin:0 0 18px}
+.festive-sendoff .christmas-doodle{width:45px;height:45px}
+.festive-sendoff .christmas-doodle:nth-child(2){width:54px;height:54px;transform:rotate(-8deg);animation-delay:.12s}
+.festive-sendoff .christmas-doodle:nth-child(3){animation-delay:.24s}
+.festive-footer{display:flex;justify-content:center;align-items:center;gap:26px;padding-top:32px}
+.festive-footer>.christmas-doodle{width:45px;height:46px;opacity:.7}
+.festive-footer>.christmas-doodle:last-child{width:34px;height:36px}
+.festive-footer .cozy-surprise{margin:0;width:240px}
+.festive-footer .doodle-gingerbread{width:65px;height:64px;transform:rotate(-8deg)}
+.festive-footer .surprise-message{font-size:17px}
+.christmas-landing .button{position:relative;overflow:hidden;transition:transform .2s,background .2s,box-shadow .2s}
+.christmas-landing .button::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 25%,#ffe3a726 50%,transparent 75%);transform:translateX(-130%)}
+.christmas-landing .button:hover::after,.christmas-landing .button:focus-visible::after{animation:ribbon-shimmer .65s ease-out 1}
+.christmas-landing .button:active{transform:translateY(1px);box-shadow:none}
+@keyframes ornament-sway{0%,100%{transform:rotate(0)}25%{transform:rotate(8deg)}65%{transform:rotate(-5deg)}}
+@keyframes keepsake-arrive{0%{transform:translateY(8px) rotate(-9deg)}60%{transform:translateY(-2px) rotate(4deg)}100%{transform:translateY(0) rotate(0)}}
+@keyframes cozy-wiggle{0%,100%{transform:rotate(0)}20%{transform:rotate(13deg)}45%{transform:rotate(-11deg)}70%{transform:rotate(6deg)}}
+@keyframes little-magic{0%{opacity:0;transform:translate(0,5px) scale(.4)}25%,65%{opacity:1}100%{opacity:0;transform:translate(var(--spark-x),var(--spark-y)) scale(1.2) rotate(15deg)}}
+@keyframes cocoa-warmth{0%{opacity:.2;transform:translateY(4px)}50%{opacity:.8}100%{opacity:0;transform:translateY(-9px)}}
+@keyframes ribbon-shimmer{to{transform:translateX(130%)}}
+@media(min-width:761px) and (max-width:1000px){.christmas-landing .steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:36px}.christmas-landing .steps::before{display:none}.christmas-landing .step-title{min-height:48px}.christmas-landing .step p{max-width:290px}}
+@media(max-width:760px){
+ .christmas-landing .trust-strip{grid-template-columns:1fr;gap:10px;padding:16px 23px}.christmas-landing .trust-strip>span{justify-content:center;font-size:11px}.christmas-landing .trust-strip .christmas-doodle{width:29px;height:27px}
+ .hanging-ornaments{width:70px;height:91px;right:20px}.christmas-landing .how-section{padding-top:18px}.surprise-bell{max-width:230px}
+ .christmas-landing .step-art .christmas-doodle{width:64px;height:64px}.christmas-landing .step-art>span{inset:12px 10px 8px}
+ .festive-flourish{max-width:205px}.festive-flourish .christmas-doodle{width:55px;height:53px}.personal-copy .festive-flourish{max-width:150px}
+ .christmas-landing .parent-points article{padding:12px 0}.christmas-landing .parent-points article:hover{transform:none}.surprise-mug{margin:20px auto 0}
+ .christmas-landing .product.featured{padding:26px 24px}.christmas-landing .faq-list>details{padding-inline:15px}.christmas-landing .faq details p{padding-left:0}.faq-question{gap:10px}
+ .festive-footer{gap:10px;padding-top:22px}.festive-footer .cozy-surprise{max-width:215px}.festive-footer>.christmas-doodle{width:30px;height:36px}.festive-footer>.christmas-doodle:last-child{width:26px;height:31px}
+ .surprise-label{font-size:20px}.surprise-message{font-size:17px;min-height:3em}.festive-sendoff{margin-bottom:14px}
+}
+@media(prefers-reduced-motion:reduce){
+ .cozy-surprise .christmas-doodle,.cozy-surprise-button:hover .surprise-drawing>.christmas-doodle,.cozy-surprise-button:active .surprise-drawing>.christmas-doodle{transform:none}
+ .cozy-surprise.is-playing .surprise-sparkles>i{opacity:1;transform:none}
+ .christmas-landing .parent-points article:hover,.christmas-landing .parent-points article:hover>span,.christmas-landing .trust-strip>span:hover .christmas-doodle{transform:none}
+}

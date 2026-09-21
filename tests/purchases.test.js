@@ -1,0 +1,47 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {createServer} from 'node:http';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
+import {randomUUID} from 'node:crypto';
+import {passwordHash} from '../apps/api/src/admin.js';
+import {purchaseUrl,purchaseToken,tokenHash,validPurchaseToken} from '../apps/api/src/purchase-links.js';
+const secret='test-secret-which-is-longer-than-thirty-two-characters';
+test('private links bind each secret token to one purchase',()=>{const a=randomUUID(),b=randomUUID();const token=purchaseToken(a,secret);assert(validPurchaseToken(token,tokenHash(token)));assert(!validPurchaseToken(purchaseToken(b,secret),tokenHash(token)));const url=new URL(purchaseUrl(a,{origin:'https://elfmailroom.com',secret}));assert.equal(url.pathname,`/write/purchase/${a}`);assert.equal(url.search,'');assert.match(url.hash,/^#token=[a-f0-9]{64}$/);});
+test('cross-device purchase review, rewrite, acceptance, PDF storage and admin version history',{timeout:20000},async()=>{
+ const temp=mkdtempSync(path.join(tmpdir(),'elf-purchase-'));const dbPath=path.join(temp,'db.sqlite');const origin='http://localhost:3202';let captured;
+ const provider=createServer(async(req,res)=>{let body='';for await(const chunk of req)body+=chunk;captured=JSON.parse(body);const text=JSON.stringify({paragraphs:['The elves found your letter under a cosy mitten this morning, and it brought a smile to my face.','I am so happy to hear how you have been learning to swim. Every little splash can be a brave adventure.','We are getting the workshop ready for Christmas, and I hope your family enjoys a season of kindness and wonder.'],closing:'With a warm Christmas hug,'});res.setHeader('content-type','application/json');res.end(JSON.stringify({id:'resp_rewrite',object:'response',status:'completed',model:'test-model',output:[{type:'message',id:'msg_rewrite',status:'completed',role:'assistant',content:[{type:'output_text',text,annotations:[]}]}]}));});await new Promise(resolve=>provider.listen(0,'127.0.0.1',resolve));
+ const proc=spawn(process.execPath,['apps/api/src/server.js'],{env:{...process.env,PORT:'3202',PUBLIC_URL:origin,DATABASE_PATH:dbPath,ORDER_LINK_SECRET:secret,ADMIN_EMAIL:'headelf@example.com',ADMIN_PASSWORD_HASH:passwordHash('long-test-admin-password'),OPENAI_API_KEY:'mock-key',OPENAI_BASE_URL:`http://127.0.0.1:${provider.address().port}/v1`,STRIPE_SECRET_KEY:'',EMAIL_ENABLED:'false',SALES_ENABLED:'false'},stdio:['ignore','pipe','pipe']});let db;
+ try{
+  await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Startup timeout')),8000);proc.stdout.once('data',()=>{clearTimeout(timeout);resolve()});proc.once('error',reject)});db=new DatabaseSync(dbPath);
+  const id=randomUUID();const token=purchaseToken(id,secret);const child={language:'de',name:'Mila',wish:'a bicycle',proud:'learning to swim',pet:'Biscuit',message:'Please tell me about Christmas.'};const original='Dear Mila,\n\nI hear Biscuit has been helping you plan your Christmas bicycle adventure. Keep being kind!\n\nWith love,';
+  db.prepare("INSERT INTO orders(id,user_id,letter,status,design,link_token_hash,child_details,buyer_email,generation_status,letter_version,created_at,amount_cents) VALUES(?,'guest',?,'paid','jolly',?,?,'parent@example.com','ready',1,?,399)").run(id,original,tokenHash(token),JSON.stringify(child),Date.now());
+  db.prepare("INSERT INTO letter_versions(order_id,version,letter,source,created_at) VALUES(?,1,?,'generated',?)").run(id,original,Date.now());
+  const request=(route,body,{token:access,cookie,foreign=false}={})=>fetch(origin+'/api/'+route,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',Origin:foreign?'https://evil.example':origin,...(access?{Authorization:`Bearer ${access}`} :{}),...(cookie?{Cookie:cookie}:{})},...(body?{body:JSON.stringify(body)}:{})});
+  assert.equal((await request(`orders/${id}`)).status,404);assert.equal((await request(`orders/${id}`,null,{token:'a'.repeat(64)})).status,404);assert.equal((await request(`orders/${id}/pdf`,null,{token})).status,409);
+  const first=await request(`orders/${id}`,null,{token}).then(r=>r.json());assert.equal(first.letter,original);assert.equal(first.language,'de');assert.equal(first.accepted,false);assert.match(first.purchaseUrl,/#token=/);
+  assert.equal((await request(`orders/${id}/rewrite`,{version:1,instructions:'Make it playful and leave out the dog and present.',avoid:['Biscuit','bicycle']},{token,foreign:true})).status,403);
+  assert.equal((await request(`orders/${id}/rewrite`,{version:1,instructions:'Make it playful and leave out the dog and present.',avoid:['Biscuit','bicycle']},{token})).status,202);
+  assert.equal((await request(`orders/${id}/rewrite`,{version:1,instructions:'Again please',avoid:[]},{token})).status,409);
+  let rewritten;for(let i=0;i<60;i++){rewritten=await request(`orders/${id}`,null,{token}).then(r=>r.json());if(rewritten.generationStatus==='ready')break;await new Promise(r=>setTimeout(r,100));}
+  assert.equal(rewritten.language,'de');assert.match(rewritten.letter,/^Hallo Mila,/);assert.match(captured.instructions,/Required output language: German/);assert.equal(rewritten.version,2,JSON.stringify({rewritten,captured}));assert.doesNotMatch(rewritten.letter,/Biscuit|bicycle/);const input=JSON.parse(captured.input);assert.deepEqual(input.revision.requests[0].avoid,['Biscuit','bicycle']);assert.equal(input.revision.previousLetter,original);assert.equal(input.child_details.message,child.message);
+  assert.equal((await request(`orders/${id}/accept`,{version:1},{token})).status,409);assert.equal((await request(`orders/${id}/accept`,{version:2},{token})).status,200);
+  const pdf=await request(`orders/${id}/pdf`,null,{token});assert.equal(pdf.status,200);const bytes=Buffer.from(await pdf.arrayBuffer());assert.equal(bytes.subarray(0,5).toString(),'%PDF-');const again=Buffer.from(await request(`orders/${id}/pdf`,null,{token}).then(r=>r.arrayBuffer()));assert.deepEqual(bytes,again);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM letter_pdfs WHERE order_id=?').get(id).n,1);
+  assert.equal((await request('admin/orders',null,{token})).status,401);assert.equal((await request('admin/login',{email:'headelf@example.com',password:'incorrect'})).status,401);
+  const login=await request('admin/login',{email:'headelf@example.com',password:'long-test-admin-password'});assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];assert.match(login.headers.get('set-cookie'),/HttpOnly/);
+  const testInput={details:{...child,language:'en-US'},design:'classic'};
+  assert.equal((await request('admin/test-letters',testInput,{token})).status,401);
+  assert.equal((await request('admin/test-letters',testInput,{cookie,foreign:true})).status,403);
+  const testLetter=await request('admin/test-letters',testInput,{cookie});assert.equal(testLetter.status,200);assert.match((await testLetter.json()).letter,/^Dear Mila,/);assert.match(captured.instructions,/Required output language: American English/);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n,1);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM letter_versions').get().n,2);
+  const list=await request('admin/orders?search=parent',null,{cookie}).then(r=>r.json());assert.equal(list.total,1);assert.equal(list.summary.revenue,399);
+  let info=await request(`admin/orders/${id}`,null,{cookie}).then(r=>r.json());assert.equal(info.versions.length,2);assert.deepEqual(info.order.child_details,child);assert.equal(info.order.link_token_hash,undefined);assert.equal(info.requests[0].status,'ready');
+  assert.equal((await request(`admin/orders/${id}/letter`,{version:1,letter:original+' Another kind thought.'},{cookie})).status,409);
+  assert.equal((await request(`admin/orders/${id}/letter`,{version:2,letter:original+' A thoughtful note from the head elf.'},{cookie})).status,200);assert.equal((await request(`orders/${id}/pdf`,null,{token})).status,409);
+  info=await request(`admin/orders/${id}`,null,{cookie}).then(r=>r.json());assert.equal(info.versions.length,3);assert.equal(info.versions[0].source,'admin');assert.equal(info.versions[0].editor,'headelf@example.com');assert.equal(info.order.accepted_version,null);
+  await request('admin/logout',{}, {cookie});assert.equal((await request('admin/orders',null,{cookie})).status,401);
+ }finally{db?.close();proc.kill();await new Promise(r=>proc.once('exit',r));await new Promise(r=>provider.close(r));rmSync(temp,{recursive:true,force:true});}
+});

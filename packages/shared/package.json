@@ -1,0 +1,15 @@
+{
+  "name": "@elf/shared",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./config.js",
+    "./ui": "./ui.jsx",
+    "./styles": "./styles.css",
+    "./i18n": "./i18n.jsx",
+    "./locales": "./locales.js",
+    "./seo": "./seo.js",
+    "./legal": "./legal.js",
+    "./cookies": "./CookieConsent.jsx"
+  }
+}

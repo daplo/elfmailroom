@@ -1,0 +1,22 @@
+{
+  "name": "@elf/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --watch src/server.js",
+    "start": "node --env-file-if-exists=../../.env src/server.js",
+    "retry-letter": "node --env-file-if-exists=../../.env src/retry-letter.js",
+    "retry-email": "node --env-file-if-exists=../../.env src/retry-email.js",
+    "admin-password": "node src/admin-password.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.1.0",
+    "nodemailer": "^10.0.10",
+    "openai": "^7.18.0",
+    "pdfkit": "^0.20.2",
+    "stripe": "^18.5.0",
+    "zod": "^4.1.0"
+  }
+}
