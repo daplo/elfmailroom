@@ -73,7 +73,7 @@ Make it just right|Genau so, wie du möchtest|Hazla a su medida|Pour une lettre 
 Ask for a different tone or tell us what to leave out before accepting.|Wünsche dir einen anderen Ton oder sage, was weggelassen werden soll.|Pide otro tono o indica qué omitir antes de aceptar.|Demandez un autre ton ou précisez quoi omettre avant de valider.|Poproś o inny ton lub wskaż, co pominąć, zanim zaakceptujesz list.
 A keepsake to print at home|Ein Andenken zum Selbstausdrucken|Un recuerdo para imprimir en casa|Un souvenir à imprimer chez vous|Pamiątka do wydrukowania w domu
 Personalised Santa Letter|Persönlicher Weihnachtsbrief|Carta personalizada de Papá Noel|Lettre personnalisée du Père Noël|Spersonalizowany list od Mikołaja
-Four illustrated designs|Vier illustrierte Designs|Cuatro diseños ilustrados|Quatre modèles illustrés|Cztery ilustrowane wzory
+Six illustrated themes|Sechs illustrierte Themen|Seis temas ilustrados|Six thèmes illustrés|Sześć ilustrowanych motywów
 Five rewrite requests included|Fünf Überarbeitungen inklusive|Cinco solicitudes de revisión incluidas|Cinq demandes de réécriture incluses|Pięć próśb o zmianę treści w cenie
 A downloadable, print-ready PDF|Eine druckfertige PDF zum Herunterladen|Un PDF descargable listo para imprimir|Un PDF à télécharger et imprimer|PDF gotowy do pobrania i wydrukowania
 Personalise your letter|Deinen Brief gestalten|Personaliza tu carta|Personnalisez votre lettre|Spersonalizuj swój list

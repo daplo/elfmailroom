@@ -23,7 +23,7 @@ test('every design prints a large script greeting exactly once and keeps the bod
   const items=(await(await doc.getPage(1)).getTextContent()).items;
   const greeting=items.find(i=>i.str==='Dear Zoë Łucja,');
   const body=items.find(i=>i.str==='A warm Christmas wish for you.');
-  assert(greeting);assert(body);assert.equal(greeting.height,26);assert(greeting.height>body.height*2);
+  assert(greeting);assert(body);assert.equal(greeting.height,30);assert(greeting.height>body.height*2);
   assert.notEqual(greeting.fontName,body.fontName);
   assert(items.some(i=>i.str==='Santa Claus'&&i.fontName===greeting.fontName));
   assert.equal(items.filter(i=>i.str.includes('Dear Zoë')).length,1);
@@ -41,7 +41,7 @@ test('wide names wrap inside PDF margins and long letters keep their final words
   const page=await doc.getPage(n),items=(await page.getTextContent()).items;
   all+=items.map(i=>i.str).join(' ');
   count+=items.filter(i=>i.str.includes('Dear')).length;
-  for(const item of items.filter(i=>i.height===26)){
+  for(const item of items.filter(i=>i.height===30)){
    assert.equal(n,1);assert(item.transform[4]>=57.9);assert(item.transform[4]+item.width<=page.view[2]-57);
   }
  }

@@ -3,11 +3,42 @@ import { chromium } from '@playwright/test';
 import assert from 'node:assert/strict';
 import {designs} from '../packages/shared/config.js';
 const browser=await chromium.launch();const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.addInitScript(()=>{
+ window.letterPaints=[];const fill=CanvasRenderingContext2D.prototype.fillText;
+ CanvasRenderingContext2D.prototype.fillText=function(text,...args){
+  if(this.font.includes('Elf'))window.letterPaints.push({font:this.font,fill:this.fillStyle,ready:document.fonts.check(this.font,text)});
+  return fill.call(this,text,...args);
+ };
+});
 await page.goto(baseURL);await page.getByRole('button',{name:'Reject',exact:true}).click();await page.getByRole('heading',{level:1}).waitFor();await page.screenshot({path:'tests/desktop.png',fullPage:true});
 assert.equal(await page.locator('.sample-design-picker input').count(),designs.length);
+assert.equal(await page.getByText('Six illustrated themes',{exact:true}).count(),3);
+const themeRow=page.locator('.sample-design-grid');
+assert(await themeRow.evaluate(row=>row.scrollWidth>row.clientWidth));
+assert.equal(await page.locator('.sample-design-option').evaluateAll(cards=>new Set(cards.map(card=>card.offsetTop)).size),1);
 await page.locator('.raster-preview>img').waitFor();
-await page.waitForFunction(()=>['ElfLetter','ElfSignature'].every(family=>[...document.fonts].some(font=>font.family===family&&font.status==='loaded')));
-assert(await page.evaluate(()=>document.fonts.check('400 16px ElfLetter')&&document.fonts.check('600 32px ElfSignature')));
+assert(await page.evaluate(()=>['ElfLetterCanvas','ElfScriptCanvas'].every(family=>[...document.fonts].some(face=>face.family===family&&face.status==='loaded'))));
+assert(await page.evaluate(()=>window.letterPaints.length>5&&window.letterPaints.every(p=>p.ready)));
+assert(await page.evaluate(()=>window.letterPaints.some(p=>p.font==='18px ElfLetterCanvas')&&window.letterPaints.some(p=>p.font==='40px ElfScriptCanvas')));
+for(const design of designs){
+ await page.locator(`input[name="sample-design"][value="${design.id}"]`).locator('..').click();
+ const preview=page.locator(`.design-${design.id}>img`);await preview.waitFor();
+ const pixel=await preview.evaluate(image=>{
+  const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+  const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0);
+  return [...ctx.getImageData(12,Math.floor(canvas.height*.45),1,1).data];
+ });
+ assert(pixel.slice(0,3).every((channel,i)=>Math.abs(channel-[255,253,245][i])<=3),`${design.id}: body paper ${pixel}`);
+}
+assert(await page.evaluate(()=>window.letterPaints.filter(p=>p.font==='18px ElfLetterCanvas').every(p=>p.fill==='#294e3d')),'All preview body text uses the same evergreen ink');
+for(const font of ['EBGaramond.ttf','Allura-Regular.ttf']){
+ const missingFontPage=await browser.newPage();
+ await missingFontPage.route('**/assets/fonts/'+font,route=>route.abort());
+ await missingFontPage.goto(baseURL);
+ await missingFontPage.getByText('Preview unavailable. Please try again.',{exact:true}).waitFor();
+ assert.equal(await missingFontPage.locator('.raster-preview>img').count(),0,'Do not bake fallback fonts into a preview');
+ await missingFontPage.close();
+}
 for(const width of [1440,360]){
  await page.setViewportSize({width,height:1000});
  for(const design of designs.filter(d=>['beach','barbecue'].includes(d.id))){

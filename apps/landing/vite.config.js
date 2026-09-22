@@ -2,7 +2,8 @@ import {defineConfig,loadEnv} from 'vite';
 import {fileURLToPath} from 'node:url';
 import {readFile} from 'node:fs/promises';
 import {legalConfig,policyDocument} from '../../packages/shared/legal.js';
-import {languageFromPath,seoData,seoHead,defaultSiteUrl} from '../../packages/shared/seo.js';
+import {blogSeoData,languageFromPath,seoData,seoHead,defaultSiteUrl} from '../../packages/shared/seo.js';
+import {findBlogArticle} from '../../packages/shared/blog.js';
 export default defineConfig(({mode})=>{
  const root=fileURLToPath(new URL('../../',import.meta.url)),env={...loadEnv(mode,root,'VITE_'),...process.env};
  const origin=env.VITE_SITE_URL||defaultSiteUrl;
@@ -20,14 +21,17 @@ export default defineConfig(({mode})=>{
        res.setHeader('X-Robots-Tag','noindex, follow');
        return res.end(policyDocument(policy[2],policy[1]||'en',legalConfig(env),{origin}));
       }
-      if(!['GET','HEAD'].includes(req.method)||!/^\/(?:(de|es|fr|pl)\/?)?$/.test(pathname))return next();
+      const blog=/^\/(?:(de|es|fr|pl)\/)?blog(?:\/([^/]+))?\/?$/.exec(pathname);
+      if(!['GET','HEAD'].includes(req.method)||(!/^\/(?:(de|es|fr|pl)\/?)?$/.test(pathname)&&!blog))return next();
+      if(blog?.[2]&&!findBlogArticle(blog[2]))return next();
       // Match production: crawlers and link previews receive localized HTML without running React.
       const language=languageFromPath(pathname);
       const{render}=await server.ssrLoadModule('/src/render.jsx');
       let html=await readFile(new URL('./index.html',import.meta.url),'utf8');
+      const data=blog?blogSeoData(language,blog[2]||'',origin):seoData(language,{origin});
       html=html.replace('<html lang="en">',`<html lang="${language}">`)
-       .replace(/<!-- SEO START -->[\s\S]*?<!-- SEO END -->/,`<!-- SEO START -->${seoHead(seoData(language,{origin}))}<!-- SEO END -->`)
-       .replace('<div id="root"></div>',()=>`<div id="root">${render(language)}</div>`);
+       .replace(/<!-- SEO START -->[\s\S]*?<!-- SEO END -->/,`<!-- SEO START -->${seoHead(data)}<!-- SEO END -->`)
+       .replace('<div id="root"></div>',()=>`<div id="root">${render(language,pathname)}</div>`);
       html=await server.transformIndexHtml(req.url,html);
       res.setHeader('Content-Type','text/html; charset=utf-8');
       res.end(req.method==='HEAD'?undefined:html);

@@ -4,5 +4,6 @@ dist/
 *.sqlite*
 test-results/
 playwright-report/
+tmp/
 
 tests/*.png

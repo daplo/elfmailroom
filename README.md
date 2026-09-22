@@ -2,7 +2,7 @@
 
 A warm, responsive Santa-letter experience in an npm workspaces monorepo.
 
-- `apps/landing`: React + Vite public site, illustrated hero, watermarked examples, digital product and FAQs.
+- `apps/landing`: React + Vite public site, illustrated hero, watermarked examples, digital product, FAQs and multilingual Christmas blog.
 - `apps/letter`: React + Vite application at `/write/`, with four steps: letter details → pick a design → pay → download PDF.
 - `apps/api`: Express API, SQLite orders and sessions, guest Stripe Checkout, signed webhooks, an OpenAI generation worker, PDF generation and optional SMTP delivery.
 - `packages/shared`: product/copy configuration, reply composer, components and visual system.
@@ -61,6 +61,10 @@ npm run test:e2e
 
 GitHub Actions runs the unit/API tests and browser checks on pushes and pull requests. Browser checks launch their own isolated server and database, cover all five languages, consent, desktop/mobile, SEO, purchase review and admin editing, and upload screenshots. External payment, generation and email providers are mocked; no live credentials are required. See [CI and deployment details](docs/deployment.md).
 
+## Landing analytics
+
+Optional consent-gated GA4 tracking covers visits, scroll milestones, visible sections/time, create-letter CTA placements, all six sample templates, example selection, FAQs, languages, navigation and festive interactions. Private letter/builder/admin routes remain untracked. Set `VITE_GOOGLE_ANALYTICS_ID`, rebuild, and disable GA4 Enhanced Measurement to avoid automatic/duplicate collection. See the [event catalogue and GA4 setup](docs/analytics.md).
+
 ## Content and artwork
 
 Edit `packages/shared/locales.js` for customer translations, digital-delivery notices and fictional sample letters; `packages/shared/config.js` for stationery and price; `packages/shared/styles.css` for the shared visual system. The illustration is optimized WebP at `public/assets/mailroom.webp`; generation provenance and prompt are in `docs/artwork.md`.
@@ -71,7 +75,7 @@ The landing-page sample gallery shows all six stationery thumbnails. Selecting a
 
 The Australian summer designs are **Santa’s Beach Christmas** and **Kangaroo Christmas BBQ**, with cream writing areas, seaside artwork and flip-flops. Both also appear in the builder, admin test form, purchase reviews and PDF exports. The existing four designs are unchanged. Artwork prompts and asset paths are recorded in [Australian stationery](docs/australian-stationery.md).
 
-All six letters use self-hosted **EB Garamond** for their traditional serif heading and body text, both in canvas previews and embedded PDFs. A standalone localized greeting (for example, “Dear Sophie,”) is drawn separately in large handwritten Caveat, matching Santa’s unchanged signature. Long names wrap, and the greeting appears only once in PDFs. Letters without a recognized greeting retain their full original text. The preview waits for both fonts before measuring or drawing text; longer text still expands the preview or flows to another PDF page. Font files and SIL Open Font License notices are included in both browser and API assets. Source: [Google Fonts EB Garamond](https://github.com/google/fonts/tree/main/ofl/ebgaramond).
+All six letters have neutral cream writing areas, the same solid warm-gold writing-area border and the same deep-evergreen body ink. Template-specific colours remain only in headings, header rules, greetings and signatures. They use self-hosted **EB Garamond** for the traditional serif heading and body, at 18px desktop / 16px mobile in previews and 12pt in PDFs (11.5pt for Jolly and Beach to preserve artwork clearance). The localized greeting and Santa’s signature use elegant **Allura** script rather than Caveat. Long names wrap, and the greeting appears only once in PDFs. Letters without a recognized greeting retain their full original text. Preview fonts are loaded explicitly as dedicated FontFace objects before measuring or drawing; a failed font load shows an error instead of baking fallback text into the image. Longer text expands the preview or flows to another PDF page. Both fonts and their SIL Open Font Licenses are bundled for browser and PDF use. Sources: [EB Garamond](https://github.com/google/fonts/tree/main/ofl/ebgaramond), [Allura](https://github.com/google/fonts/tree/main/ofl/allura).
 
 Landing-page Christmas accents live in `apps/landing/src/ChristmasAccents.jsx`, `FestiveDetails.jsx` and `christmas.css`: fairy lights, holly, hanging ornaments, Christmas doodles, and localized bell, cocoa, gift and gingerbread surprises throughout the page. Decorative entrance animations play once as sections enter view; buttons, sample tabs and FAQ cards have small hover/focus interactions. Surprises work on tap and keyboard, have localized status messages, and finish after 2.4 seconds. The “Let it snow” button stops after 4.5 seconds or a second click. Reduced-motion preferences disable animations and show static decorations; the existing artwork is unchanged.
 
@@ -167,7 +171,7 @@ The builder now shows all six selectable design thumbnails; full-size sample pre
 
 ## Search visibility
 
-The landing build pre-renders public pages at `/`, `/de/`, `/es/`, `/fr/` and `/pl/`, with localized headings, metadata, canonical/hreflang links and JSON-LD. It generates `sitemap.xml` and `robots.txt`. Set the public build variable `VITE_SITE_URL` to your production origin before `npm run build`; the default matches the project's existing `https://elfmailroom.com` domain. Private app routes remain noindex. See [the SEO review and deployment checks](docs/seo.md) for the copy changes, schema behavior and local validation. Run `node tests/seo-browser.mjs` after building to test the production HTML and language routes.
+The landing build pre-renders the home page, blog index and three evergreen Christmas guides in English, German, Spanish, French and Polish. Every page has localized content, metadata, canonical/hreflang links and JSON-LD; `sitemap.xml` and `robots.txt` are generated at build time. Set the public build variable `VITE_SITE_URL` to your production origin before `npm run build`; the default matches the project's existing `https://elfmailroom.com` domain. Private app routes remain noindex. See [the SEO review and deployment checks](docs/seo.md) for the routes, schema behavior and local validation. Run `node tests/seo-browser.mjs` after building to test the production HTML and language routes.
 
 ## Privacy, terms and refunds
 

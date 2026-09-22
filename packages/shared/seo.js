@@ -1,10 +1,12 @@
 import {languages,localeCode,translate,digitalNotice} from './locales.js';
 import {santaLetterPrice} from './config.js';
+import {articleTranslation,blogAlternates,blogArticles,blogCopy,blogPath,findBlogArticle} from './blog.js';
 export const defaultSiteUrl='https://elfmailroom.com';
 export function siteOrigin(value=defaultSiteUrl){const url=new URL(value);if(!['http:','https:'].includes(url.protocol)||url.username||url.password||url.pathname!=='/'||url.search||url.hash)throw new Error('VITE_SITE_URL must be an HTTP(S) origin without a path, credentials or query.');return url.origin;}
 export const languagePath=code=>localeCode(code)==='en'?'/':`/${localeCode(code)}/`;
 export const legalPath=(type,language='en')=>`${languagePath(language)}${type}/`;
-export function languageFromPath(path){return /^\/(de|es|fr|pl)\/?$/.exec(path)?.[1]||'en'}
+export function languageFromPath(path){return /^\/(de|es|fr|pl)(?:\/|$)/.exec(path)?.[1]||'en'}
+export function localizedPath(path,language='en'){const rest=`/${String(path||'/').replace(/^\/(?:de|es|fr|pl)(?=\/|$)/,'').replace(/^\/+|\/+$/g,'')}${String(path||'/').endsWith('/')?'/' : ''}`.replace(/^\/\/$/,'/');return localeCode(language)==='en'?rest:`/${localeCode(language)}${rest}`}
 export const seoCopy={
  pl:{title:'List od Mikołaja do druku — spersonalizowany | Elf Mailroom',description:'Stwórz osobisty list od Mikołaja za 3,99 USD. Wybierz ilustrowany wzór, sprawdź treść i pobierz PDF do wydrukowania w domu. Bez wysyłki pocztą.',h1:'Spersonalizowane listy od Mikołaja do wydrukowania',intro:'Podaruj dziecku odrobinę świątecznej magii — list od Mikołaja z jego imieniem, życzeniami i małymi powodami do dumy.',how:'Jak stworzyć osobisty list od Mikołaja',example:'List od Mikołaja tylko dla Twojego dziecka',price:'Twój list od Mikołaja w PDF — 3,99 USD',faq:'Pytania o cyfrowy list od Mikołaja',alt:'Elf przygotowuje świąteczne listy w przytulnej poczcie Mikołaja na biegunie północnym'},
  en:{title:'Personalised Santa Letters to Print | Elf Mailroom',description:'Create a personalised letter from Santa for US$3.99. Choose an illustrated design, review the words, then download and print your PDF at home. Digital only.',h1:'Personalised Santa letters to download and print',intro:'Make their Christmas feel a little more magical with a letter from Santa, written around their name, wishes and proud little moments.',how:'How to create your personalised Santa letter',example:'A Santa letter made just for your child',price:'Your printable Santa letter — US$3.99',faq:'Questions about your digital Santa letter',alt:'An elf preparing Christmas letters in Santa’s cozy North Pole mailroom'},
@@ -31,6 +33,27 @@ export function seoData(language='en',{origin=defaultSiteUrl,checkoutEnabled=fal
  {'@type':'WebPage','@id':url+'#webpage',url,name:copy.title,description:copy.description,inLanguage:code,isPartOf:{'@id':base+'/#website'},mainEntity:{'@id':base+'/#santa-letter'}},product
  ]}};
 }
+export function blogSeoData(language='en',slug='',origin=defaultSiteUrl){
+ const code=localeCode(language),base=siteOrigin(origin),copy=blogCopy[code],article=slug?findBlogArticle(slug):null;
+ if(slug&&!article)return null;
+ const page=article?articleTranslation(article,code):copy,url=base+blogPath(code,slug);
+ const title=article?`${page.title} | Elf Mailroom`:copy.title+' | Elf Mailroom';
+ const description=page.description,image=base+'/assets/mailroom.webp',alternates=blogAlternates(base,slug);
+ const pageType=article?'Article':'CollectionPage';
+ const graph=[
+  {'@type':'Organization','@id':base+'/#organization',name:'Elf Mailroom',url:base+'/'},
+  {'@type':'WebSite','@id':base+'/#website',url:base+'/',name:'Elf Mailroom',inLanguage:languages.map(x=>x.code),publisher:{'@id':base+'/#organization'}},
+  {'@type':pageType,'@id':url+'#webpage',url,name:title,description,inLanguage:code,isPartOf:{'@id':base+'/#website'},breadcrumb:{'@id':url+'#breadcrumb'}},
+  {'@type':'BreadcrumbList','@id':url+'#breadcrumb',itemListElement:[
+   {'@type':'ListItem',position:1,name:'Elf Mailroom',item:base+languagePath(code)},
+   {'@type':'ListItem',position:2,name:copy.title,item:base+blogPath(code)},
+   ...(article?[{'@type':'ListItem',position:3,name:page.title,item:url}]:[])
+  ]}
+ ];
+ if(article)graph.push({'@type':'BlogPosting','@id':url+'#article',headline:page.title,description,datePublished:article.date,dateModified:article.date,inLanguage:code,image,author:{'@id':base+'/#organization'},publisher:{'@id':base+'/#organization'},mainEntityOfPage:{'@id':url+'#webpage'}});
+ else graph.push({'@type':'ItemList',itemListElement:blogArticles.map((item,index)=>({'@type':'ListItem',position:index+1,url:base+blogPath(code,item.slug),name:articleTranslation(item,code).title}))});
+ return {title,description,code,url,image,alt:seoCopy[code].alt,alternates,ogType:article?'article':'website',schema:{'@context':'https://schema.org','@graph':graph}};
+}
 export const escapeHtml=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const safeJson=value=>JSON.stringify(value).replace(/</g,'\\u003c');
 export function seoHead(data){const e=escapeHtml;return `<title>${e(data.title)}</title>
@@ -38,7 +61,7 @@ export function seoHead(data){const e=escapeHtml;return `<title>${e(data.title)}
 <meta name="robots" content="index,follow,max-image-preview:large"/>
 <link rel="canonical" href="${e(data.url)}"/>
 ${data.alternates.map(x=>`<link rel="alternate" hreflang="${x.language}" href="${e(x.url)}"/>`).join('\n')}
-<meta property="og:type" content="website"/>
+<meta property="og:type" content="${e(data.ogType||'website')}"/>
 <meta property="og:site_name" content="Elf Mailroom"/>
 <meta property="og:title" content="${e(data.title)}"/>
 <meta property="og:description" content="${e(data.description)}"/>
@@ -54,4 +77,4 @@ ${data.alternates.map(x=>`<link rel="alternate" hreflang="${x.language}" href="$
 <meta name="twitter:image" content="${e(data.image)}"/>
 <meta name="twitter:image:alt" content="${e(data.alt)}"/>
 <script id="elf-schema" type="application/ld+json">${safeJson(data.schema)}</script>`}
-export function sitemap(origin=defaultSiteUrl){const base=siteOrigin(origin),e=escapeHtml;return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${languages.map(x=>`<url><loc>${e(base+languagePath(x.code))}</loc>${[...languages.map(y=>({code:y.code,path:languagePath(y.code)})),{code:'x-default',path:'/'}].map(y=>`<xhtml:link rel="alternate" hreflang="${y.code}" href="${e(base+y.path)}"/>`).join('')}</url>`).join('')}</urlset>`}
+export function sitemap(origin=defaultSiteUrl){const base=siteOrigin(origin),e=escapeHtml,landingRoutes=languages.map(x=>({url:languagePath(x.code),alternates:[...languages.map(y=>({language:y.code,url:base+languagePath(y.code)})),{language:'x-default',url:base+'/'}]})),blogRoutes=['',...blogArticles.map(x=>x.slug)].flatMap(slug=>languages.map(x=>({url:blogPath(x.code,slug),alternates:blogAlternates(base,slug)}))),routes=[...landingRoutes,...blogRoutes];return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${routes.map(route=>`<url><loc>${e(base+route.url)}</loc>${route.alternates.map(x=>`<xhtml:link rel="alternate" hreflang="${x.language}" href="${e(x.url)}"/>`).join('')}</url>`).join('')}</urlset>`}

@@ -15,13 +15,15 @@ export const faqs = [
 ];
 export function makeReply({name='Sophie',wish='a bicycle',proud='learning to ride without stabilisers',pet=''}){return `Dear ${name},\n\nYour letter has arrived safely at the North Pole, and it has made this snowy day a little brighter! The elves set it right on my desk, beside my mug of hot chocolate.\n\nI hear you have been working on ${proud}. Every little step takes courage, and I hope you feel very proud of yourself.\n\nI have made a special note of your Christmas wish: ${wish}. The workshop is full of surprises, and the elves are keeping very busy!${pet ? ` Please give ${pet} a little Christmas hello from me, too.` : ''}\n\nKeep being kind, stay curious, and remember that the best Christmas magic is the love we share with each other.\n\nWith a big, snowy hug,\nSanta Claus`;}
 
+export const letterBodyInk='#294e3d';
+export const letterBorderInk='#d2ad64';
 export const designs = [
- {id:'classic',name:'Santa’s Special Delivery',description:'Santa, his mailbag and a few woodland friends.',art:'santa',background:'#fffdf5',ink:'#294e3d',accent:'#ad443e',border:'#d8c7a6',motif:'✦'},
- {id:'woodland',name:'Reindeer Wishes',description:'Two cozy reindeer in their Christmas scarves.',art:'reindeer',background:'#f2f6ec',ink:'#294e3d',accent:'#567047',border:'#b6c4a5',motif:'♧'},
- {id:'starlight',name:'Christmas Eve Flight',description:'Santa’s sleigh above a snowy North Pole village.',art:'sleigh',background:'#f4f7fc',ink:'#314d71',accent:'#9a7537',border:'#c8d3e2',motif:'✧'},
- {id:'jolly',name:'Jolly Christmas Pals',description:'A happy Santa, silly reindeer and their crayon-coloured friends.',art:'christmas-pals',background:'#fffdf5',ink:'#294e3d',accent:'#c34e3d',border:'#8db59a',motif:'★'},
- {id:'beach',name:'Santa’s Beach Christmas',description:'Santa in flip-flops, sandy toes and seaside Christmas magic.',art:'santa-beach',background:'#fffdf5',ink:'#294e3d',accent:'#ad443e',border:'#d8c7a6',motif:'☀',previewFooterRatio:.60},
- {id:'barbecue',name:'Kangaroo Christmas BBQ',description:'Kangaroos in flip-flops, festive gifts and a sunny Christmas BBQ.',art:'kangaroo-bbq',background:'#fffdf5',ink:'#294e3d',accent:'#ad443e',border:'#d8c7a6',motif:'☀'}
+ {id:'classic',name:'Santa’s Special Delivery',description:'Santa, his mailbag and a few woodland friends.',art:'santa',background:'#fffdf5',ink:'#294e3d',accent:'#ad443e',border:'#d8c7a6',frameInset:.0264,frameTop:.0195,frameBottom:.0254,motif:'✦'},
+ {id:'woodland',name:'Reindeer Wishes',description:'Two cozy reindeer in their Christmas scarves.',art:'reindeer',background:'#fffdf5',ink:'#294e3d',accent:'#567047',border:'#b6c4a5',frameInset:.0293,frameTop:.0264,frameBottom:.043,motif:'♧'},
+ {id:'starlight',name:'Christmas Eve Flight',description:'Santa’s sleigh above a snowy North Pole village.',art:'sleigh',background:'#fffdf5',ink:'#314d71',accent:'#9a7537',border:'#c8d3e2',frameInset:.0254,frameTop:.0234,frameBottom:.0244,motif:'✧'},
+ {id:'jolly',name:'Jolly Christmas Pals',description:'A happy Santa, silly reindeer and their crayon-coloured friends.',art:'christmas-pals',background:'#fffdf5',ink:'#294e3d',accent:'#c34e3d',border:'#8db59a',frameInset:.0186,frameTop:.0186,frameBottom:.0186,motif:'★'},
+ {id:'beach',name:'Santa’s Beach Christmas',description:'Santa in flip-flops, sandy toes and seaside Christmas magic.',art:'santa-beach',background:'#fffdf5',ink:'#294e3d',accent:'#ad443e',border:'#d8c7a6',frameInset:.0254,frameTop:.0234,frameBottom:.0244,motif:'☀',previewFooterRatio:.60},
+ {id:'barbecue',name:'Kangaroo Christmas BBQ',description:'Kangaroos in flip-flops, festive gifts and a sunny Christmas BBQ.',art:'kangaroo-bbq',background:'#fffdf5',ink:'#294e3d',accent:'#ad443e',border:'#d8c7a6',frameInset:.022,frameTop:.0195,frameBottom:.0195,motif:'☀'}
 ];
 export function getDesign(id){return designs.find(d=>d.id===id)||designs[0]}
 

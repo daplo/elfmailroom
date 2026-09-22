@@ -9,6 +9,7 @@
     "./i18n": "./i18n.jsx",
     "./locales": "./locales.js",
     "./seo": "./seo.js",
+    "./blog": "./blog.js",
     "./legal": "./legal.js",
     "./cookies": "./CookieConsent.jsx"
   }
