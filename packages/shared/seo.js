@@ -38,8 +38,8 @@ export function blogSeoData(language='en',slug='',origin=defaultSiteUrl){
  if(slug&&!article)return null;
  const page=article?articleTranslation(article,code):copy,url=base+blogPath(code,slug);
  const title=article?`${page.title} | Elf Mailroom`:copy.title+' | Elf Mailroom';
- const description=page.description,image=base+'/assets/mailroom.webp',alternates=blogAlternates(base,slug);
- const pageType=article?'Article':'CollectionPage';
+ const description=page.description,image=base+(article?article.image.src:'/assets/mailroom.webp'),alternates=blogAlternates(base,slug);
+ const pageType=article?'WebPage':'CollectionPage';
  const graph=[
   {'@type':'Organization','@id':base+'/#organization',name:'Elf Mailroom',url:base+'/'},
   {'@type':'WebSite','@id':base+'/#website',url:base+'/',name:'Elf Mailroom',inLanguage:languages.map(x=>x.code),publisher:{'@id':base+'/#organization'}},
@@ -50,9 +50,16 @@ export function blogSeoData(language='en',slug='',origin=defaultSiteUrl){
    ...(article?[{'@type':'ListItem',position:3,name:page.title,item:url}]:[])
   ]}
  ];
- if(article)graph.push({'@type':'BlogPosting','@id':url+'#article',headline:page.title,description,datePublished:article.date,dateModified:article.date,inLanguage:code,image,author:{'@id':base+'/#organization'},publisher:{'@id':base+'/#organization'},mainEntityOfPage:{'@id':url+'#webpage'}});
+ if(article){
+  const faqId=url+'#faq';
+  graph[2].mainEntity={'@id':url+'#article'};
+  graph[2].hasPart={'@id':faqId};
+  graph.push({'@type':'BlogPosting','@id':url+'#article',headline:page.title,description,datePublished:article.date,dateModified:article.updated||article.date,inLanguage:code,image,author:{'@id':base+'/#organization'},publisher:{'@id':base+'/#organization'},mainEntityOfPage:{'@id':url+'#webpage'},hasPart:{'@id':faqId}});
+  // Keep these answers identical to the visible FAQ section in every locale.
+  graph.push({'@type':'FAQPage','@id':faqId,url:faqId,name:copy.faq,inLanguage:code,isPartOf:{'@id':url+'#webpage'},mainEntity:page.faqs.map(([question,answer])=>({'@type':'Question',name:question,acceptedAnswer:{'@type':'Answer',text:answer}}))});
+ }
  else graph.push({'@type':'ItemList',itemListElement:blogArticles.map((item,index)=>({'@type':'ListItem',position:index+1,url:base+blogPath(code,item.slug),name:articleTranslation(item,code).title}))});
- return {title,description,code,url,image,alt:seoCopy[code].alt,alternates,ogType:article?'article':'website',schema:{'@context':'https://schema.org','@graph':graph}};
+ return {title,description,code,url,image,imageWidth:article?.image.width||1536,imageHeight:article?.image.height||1024,alt:article?article.image.alt[code]:seoCopy[code].alt,alternates,ogType:article?'article':'website',schema:{'@context':'https://schema.org','@graph':graph}};
 }
 export const escapeHtml=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const safeJson=value=>JSON.stringify(value).replace(/</g,'\\u003c');
@@ -69,8 +76,8 @@ ${data.alternates.map(x=>`<link rel="alternate" hreflang="${x.language}" href="$
 <meta property="og:locale" content="${{en:'en_GB',de:'de_DE',es:'es_ES',fr:'fr_FR',pl:'pl_PL'}[data.code]}"/>
 <meta property="og:image" content="${e(data.image)}"/>
 <meta property="og:image:alt" content="${e(data.alt)}"/>
-<meta property="og:image:width" content="1536"/>
-<meta property="og:image:height" content="1024"/>
+<meta property="og:image:width" content="${e(data.imageWidth||1536)}"/>
+<meta property="og:image:height" content="${e(data.imageHeight||1024)}"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${e(data.title)}"/>
 <meta name="twitter:description" content="${e(data.description)}"/>
