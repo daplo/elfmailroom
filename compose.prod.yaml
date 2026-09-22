@@ -1,0 +1,37 @@
+services:
+  app:
+    image: elfmailroom:production
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SITE_URL: ${VITE_SITE_URL:?Set VITE_SITE_URL in .env}
+        VITE_BUSINESS_NAME: ${VITE_BUSINESS_NAME:?Set VITE_BUSINESS_NAME in .env}
+        VITE_BUSINESS_COUNTRY: ${VITE_BUSINESS_COUNTRY:?Set VITE_BUSINESS_COUNTRY in .env}
+        VITE_BUSINESS_ADDRESS: ${VITE_BUSINESS_ADDRESS:?Set VITE_BUSINESS_ADDRESS in .env}
+        VITE_BUSINESS_ABN: ${VITE_BUSINESS_ABN:-}
+        VITE_SUPPORT_EMAIL: ${VITE_SUPPORT_EMAIL:?Set VITE_SUPPORT_EMAIL in .env}
+        VITE_PRIVACY_RETENTION: ${VITE_PRIVACY_RETENTION:?Set VITE_PRIVACY_RETENTION in .env}
+        VITE_PRIVACY_PROVIDERS: ${VITE_PRIVACY_PROVIDERS:?Set VITE_PRIVACY_PROVIDERS in .env}
+        VITE_GOOGLE_ANALYTICS_ID: ${VITE_GOOGLE_ANALYTICS_ID:-}
+    env_file:
+      - .env
+    environment:
+      PORT: 3001
+      DATABASE_PATH: /data/mailroom.sqlite
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/config').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

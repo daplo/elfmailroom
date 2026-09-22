@@ -23,7 +23,7 @@ npm run build
 npm start
 ```
 
-Production builds are served together on port 3001. Set `PUBLIC_URL` to the deployed HTTPS origin (or `http://localhost:3001` for a local production preview). SQLite must be on a persistent disk. Deploy a single API instance or replace SQLite with a shared database before scaling horizontally.
+Production builds run in the Node 24 image defined by `Dockerfile` and are served together on port 3001. `compose.prod.yaml` publishes it only on `127.0.0.1:3001` for an HTTPS reverse proxy and persists SQLite under `./data`. Set `PUBLIC_URL` to the deployed HTTPS origin. Deploy a single API container or replace SQLite with a shared database before scaling horizontally. See [deployment details](docs/deployment.md).
 
 ## Enable purchases
 
