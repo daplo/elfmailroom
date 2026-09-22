@@ -1,6 +1,6 @@
 # Production deployment
 
-The production stack is one Dockerized Node 24 + Express process with SQLite (Node's built-in `node:sqlite`). The same process runs generation/email workers and serves both built React applications. `compose.prod.yaml` binds the application only to `127.0.0.1:3001`; expose it through an HTTPS reverse proxy.
+The production stack is one Dockerized Node 24 + Express process with SQLite (Node's built-in `node:sqlite`). The same process runs generation/email workers and serves both built React applications. `compose.prod.yaml` binds the application only to `127.0.0.1:3001` and runs Caddy on ports 80/443 for automatic HTTPS.
 
 ## Current deployment
 
@@ -10,8 +10,8 @@ Use a single application container with a persistent local disk and HTTPS revers
 2. Create the dedicated deployment directory and a `data/` directory owned by that user. `data/` is mounted at `/data`; Compose fixes `DATABASE_PATH` to `/data/mailroom.sqlite`.
 3. Configure the deployment directory's `.env`. Set `PUBLIC_URL` and `VITE_SITE_URL` to the same HTTPS origin. The deployment workflow deliberately preserves `.env` and `data/` rather than copying them from GitHub.
 4. Supply the OpenAI, Stripe, optional SMTP and admin settings described in README.md. Keep `ORDER_LINK_SECRET` stable across deploys so existing purchase links continue to work.
-5. Complete the public legal fields. Compose passes the public `VITE_*` values into the image build and supplies the same values to the running API, keeping the generated policy manifest consistent with runtime configuration.
-6. Validate and start manually if needed with `docker compose --env-file .env -f compose.prod.yaml up -d --build`. Reverse-proxy the entire public origin to `http://127.0.0.1:3001`; the container port is not publicly exposed.
+5. Complete the public legal fields before enabling sales. Compose passes the public `VITE_*` values into the image build and supplies the same values to the running API, keeping the generated policy manifest consistent with runtime configuration. Missing policy/payment values leave checkout disabled but do not block the public site.
+6. Validate and start manually if needed with `docker compose --env-file .env -f compose.prod.yaml up -d --build`. Caddy obtains and renews certificates for `elfmailroom.com`; the application container remains private to the host and Compose network.
 7. The app currently does not configure Express trust proxy. Strip forwarded client-IP headers at the proxy for the current configuration (rate limiting then shares the proxy IP). Before public traffic, configure trust only for your actual proxy network and verify per-client limits; do not blindly trust arbitrary forwarded headers.
 8. Register `https://YOUR-DOMAIN/api/webhook` in Stripe for `checkout.session.completed` and `checkout.session.async_payment_succeeded`, then set its signing secret. Verify a Stripe test-mode payment, generation, review, PDF and email before enabling `SALES_ENABLED`.
 9. Back up the SQLite database using a SQLite-aware online backup or while the container is stopped; a casual copy of the live `.sqlite` file can miss WAL data. Include PDF blobs/revisions and keep the signing secret in a separate secret backup. Test restoring before launch.
