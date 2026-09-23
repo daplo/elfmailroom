@@ -1,3 +1,5 @@
+import {storedPdf} from './pdf-store.js';
+import {expiredOrder} from './retention.js';
 import {randomBytes,createHash,timingSafeEqual,scryptSync} from 'node:crypto';
 import {rateLimit} from 'express-rate-limit';
 import {z} from 'zod';
@@ -44,6 +46,13 @@ export function mountAdmin(app,db,{origin,env=process.env,generate=createLetterG
   const total=db.prepare(`SELECT COUNT(*) AS total FROM orders ${where}`).get(...params).total;
   const summary=db.prepare("SELECT COUNT(*) AS purchases,SUM(CASE WHEN status='paid' THEN 1 ELSE 0 END) AS paid,SUM(CASE WHEN letter!='' THEN 1 ELSE 0 END) AS letters,SUM(CASE WHEN status='paid' THEN COALESCE(amount_cents,0) ELSE 0 END) AS revenue FROM orders").get();
   res.json({orders:rows,total,page,pageSize:25,summary});
+ });
+ app.get('/api/admin/orders/:id/pdf',async(req,res)=>{
+  const order=db.prepare('SELECT * FROM orders WHERE id=?').get(req.params.id);
+  if(!order||expiredOrder(order))return res.status(404).json({error:'Letter not found or expired.'});
+  if(!order.letter)return res.status(409).json({error:'This letter has not been generated yet.'});
+  const pdf=await storedPdf(db,order);
+  res.set({'Content-Type':'application/pdf','Content-Disposition':'inline; filename="santa-letter-preview.pdf"','Cache-Control':'no-store'}).send(pdf);
  });
  app.get('/api/admin/orders/:id',(req,res)=>{
   const order=db.prepare('SELECT * FROM orders WHERE id=?').get(req.params.id);if(!order)return res.status(404).json({error:'Purchase not found.'});
