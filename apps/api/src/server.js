@@ -1,4 +1,5 @@
 import express from 'express';
+import {mountStaticFiles} from './static-files.js';
 import helmet from 'helmet';
 import {rateLimit} from 'express-rate-limit';
 import Stripe from 'stripe';
@@ -22,6 +23,7 @@ import {policyVersion,policyDocument} from '../../../packages/shared/legal.js';
 import {mountAdmin} from './admin.js';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
 const app=express();
+app.use('/api',(req,res,next)=>{res.set('Cache-Control','no-store');next();});
 const db=new DatabaseSync(process.env.DATABASE_PATH||path.join(root,'mailroom.sqlite'));
 db.exec(`PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,email TEXT UNIQUE NOT NULL,password TEXT NOT NULL); CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id TEXT NOT NULL,expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS orders(id TEXT PRIMARY KEY,user_id TEXT NOT NULL,letter TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',checkout_id TEXT);`);
 for(const [name,type] of [['design',"TEXT NOT NULL DEFAULT 'classic'"],['access_token','TEXT']]){if(!db.prepare('PRAGMA table_info(orders)').all().some(c=>c.name===name))db.exec(`ALTER TABLE orders ADD COLUMN ${name} ${type}`);}
@@ -98,8 +100,6 @@ app.post('/api/orders/:id/accept',(req,res)=>{
 });
 mountAdmin(app,db,{origin});
 app.use('/api',(req,res)=>res.status(404).json({error:'Not found.'}));
-app.use('/write',(req,res,next)=>{res.set('X-Robots-Tag','noindex, nofollow');next();});
-app.use('/write',express.static(path.join(root,'apps/letter/dist')));app.get('/write/{*path}',(req,res)=>res.sendFile(path.join(root,'apps/letter/dist/index.html')));
-app.use(express.static(path.join(root,'apps/landing/dist')));
+mountStaticFiles(app,{landingDir:path.join(root,'apps/landing/dist'),letterDir:path.join(root,'apps/letter/dist')});
 app.use((err,req,res,next)=>res.status(err.status||500).json({error:err.status?err.message:'Something went wrong. Please try again.'}));
 app.listen(process.env.PORT||3001,()=>console.log(`Elf Mailroom API listening on ${process.env.PORT||3001}`));

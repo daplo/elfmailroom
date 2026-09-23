@@ -42,3 +42,7 @@ Postgres is a separate migration, not an environment-variable switch. The API, a
 - After a successful `main` run, `.github/workflows/deploy.yml` uses the protected `prod` environment to deploy the tested revision. It needs environment secrets `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` and `DEPLOY_KNOWN_HOSTS`, plus variables `DEPLOY_PORT` and `DEPLOY_PATH`.
 
 Locally: npm ci, npx playwright install chromium, then npm run test:ci. No manually started development server is needed. The browser runner uses ports 3212, 3210 and 5199.
+
+## Browser caching
+
+Express sets both `Cache-Control` and `Expires` for successfully served static files. Vite's content-hashed JS/CSS bundles cache for one year with `immutable`; images and fonts cache for seven days. Keep named public assets on the shorter policy because their URLs do not change automatically: use a new filename for changes that must appear immediately. Public HTML, sitemaps and unversioned CSS require revalidation. Letter-builder HTML and all API responses use `no-store`. Caddy passes these headers through unchanged.
