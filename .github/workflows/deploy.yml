@@ -18,8 +18,16 @@ jobs:
   deploy:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     environment: prod
+    defaults:
+      run:
+        shell: bash
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
     steps:
       - name: Check out tested revision
         uses: actions/checkout@v4
@@ -31,46 +39,77 @@ jobs:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
+          [[ "$DEPLOY_PATH" =~ ^/[a-zA-Z0-9_./-]+$ && "$DEPLOY_PATH" != / ]]
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-zA-Z0-9_-]+$ ]]
+          [[ "${DEPLOY_PORT:-22}" =~ ^[0-9]+$ ]]
           install -m 700 -d ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host production
+            HostName $DEPLOY_HOST
+            User $DEPLOY_USER
+            Port ${DEPLOY_PORT:-22}
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            BatchMode yes
+            StrictHostKeyChecking yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 12
+          EOF
+          chmod 600 ~/.ssh/config
 
-      - name: Upload application source
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
-          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      - name: Read public build settings and server architecture
         run: |
-          rsync -az --delete \
-            --exclude='.git/' \
-            --exclude='.env' \
-            --exclude='data/' \
-            --exclude='node_modules/' \
-            --exclude='**/dist/' \
-            --exclude='test-results/' \
-            --exclude='tmp/' \
-            -e "ssh -i ~/.ssh/deploy_key -p ${DEPLOY_PORT:-22}" \
-            ./ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+          # Only allowlisted VITE_* settings leave the VPS; never download .env.
+          umask 077
+          ssh production "cd '$DEPLOY_PATH' && test -s .env && python3 - export" \
+            < scripts/deploy-image.py > "$RUNNER_TEMP/deploy-build.json"
+          echo "DEPLOY_REVISION=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
-      - name: Build and restart application
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
-          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
-        run: |
-          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" \
-            "cd '$DEPLOY_PATH' && test -s .env && mkdir -p data && docker compose --env-file .env -f compose.prod.yaml config --quiet && docker compose --env-file .env -f compose.prod.yaml build --pull && docker compose --env-file .env -f compose.prod.yaml up -d --remove-orphans && docker compose --env-file .env -f compose.prod.yaml ps && docker image prune -f"
+      - name: Enable cross-platform image builds
+        uses: docker/setup-qemu-action@v3
 
-      - name: Verify application health
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
-          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      - name: Build production image on GitHub runner
+        run: python3 scripts/deploy-image.py build "$RUNNER_TEMP/deploy-build.json" "$DEPLOY_REVISION"
+
+      - name: Transfer finished image to VPS
         run: |
-          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" "$DEPLOY_USER@$DEPLOY_HOST" \
-            "cd '$DEPLOY_PATH' && for attempt in 1 2 3 4 5 6 7 8 9 10; do status=\$(docker inspect --format='{{.State.Health.Status}}' \$(docker compose --env-file .env -f compose.prod.yaml ps -q app)); [ \"\$status\" = healthy ] && exit 0; sleep 3; done; docker compose --env-file .env -f compose.prod.yaml logs --tail=100 app; exit 1"
+          docker image save elfmailroom:production | gzip -1 | ssh production 'docker image load'
+
+      - name: Upload runtime configuration
+        run: |
+          # No --delete: preserve .env, SQLite data and existing server files.
+          rsync -az -e ssh compose.prod.yaml Caddyfile "production:$DEPLOY_PATH/"
+
+      - name: Start prebuilt application and verify health
+        run: |
+          ssh production "bash -s -- '$DEPLOY_PATH' '$DEPLOY_REVISION'" <<'REMOTE'
+          set -euo pipefail
+          cd "$1"
+          expected_revision="$2"
+          test -s .env
+          mkdir -p data
+          actual_revision=$(docker image inspect --format='{{index .Config.Labels "org.opencontainers.image.revision"}}' elfmailroom:production)
+          test "$actual_revision" = "$expected_revision"
+          compose=(docker compose --env-file .env -f compose.prod.yaml)
+          "${compose[@]}" config --quiet
+          "${compose[@]}" pull caddy
+          if ! "${compose[@]}" up -d --no-build --pull never --remove-orphans --wait --wait-timeout 120; then
+            "${compose[@]}" ps
+            "${compose[@]}" logs --tail=100 app
+            exit 1
+          fi
+          container_id=$("${compose[@]}" ps -q app)
+          test "$(docker inspect --format='{{index .Config.Labels "org.opencontainers.image.revision"}}' "$container_id")" = "$expected_revision"
+          "${compose[@]}" ps
+          docker image prune -f
+          REMOTE
+
+      - name: Remove temporary deployment files
+        if: always()
+        run: rm -f "$RUNNER_TEMP/deploy-build.json" ~/.ssh/deploy_key

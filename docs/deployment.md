@@ -16,7 +16,13 @@ Use a single application container with a persistent local disk and HTTPS revers
 8. Register `https://YOUR-DOMAIN/api/webhook` in Stripe for `checkout.session.completed` and `checkout.session.async_payment_succeeded`, then set its signing secret. Verify a Stripe test-mode payment, generation, review, PDF and email before enabling `SALES_ENABLED`.
 9. Back up the SQLite database using a SQLite-aware online backup or while the container is stopped; a casual copy of the live `.sqlite` file can miss WAL data. Include PDF blobs/revisions and keep the signing secret in a separate secret backup. Test restoring before launch.
 
-For updates, CI must pass on `main`. The deployment workflow then syncs source without `.env` or `data/`, rebuilds the image on the server, restarts Compose and waits for its health check. Schema migrations run at startup, so rolling back an image alone may not undo a database migration.
+For updates, CI must pass on `main`. The deployment workflow builds the production Docker image on the GitHub runner, not on the VPS. It reads only the explicitly allowlisted public `VITE_*` build arguments from the server’s existing Compose configuration and detects the Docker server architecture. Python 3 must be installed on the VPS. The full `.env` and runtime secrets never leave the server.
+
+The runner builds the tested commit for that architecture and labels the image with its commit SHA. It streams a compressed `docker image save` archive over SSH into `docker image load`, then uploads only `compose.prod.yaml` and `Caddyfile`, without deleting server files. No container registry or new GitHub secrets are required. SSH uses strict host verification and keep-alives.
+
+The VPS starts the loaded image using `docker compose up --no-build --pull never --wait --wait-timeout 120`. The Caddy image is pulled separately. The job checks that the loaded and running application image labels match the tested revision and waits for application health before pruning dangling images. `.env`, `data/`, the existing Compose project name and Caddy certificate volumes are preserved. A failed build or transfer does not restart the application.
+
+To deploy changes, push to `main` and let Tests trigger Deploy production. The manual dispatch remains available. Application source left on the VPS by older deployments is no longer synchronized; do not rebuild from that stale checkout. To reproduce an image locally, use a fresh checkout and the Dockerfile. Schema migrations run at startup, so rolling back an image alone may not undo a database migration.
 
 ## Docker and Postgres
 
