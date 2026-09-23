@@ -1,0 +1,13 @@
+[Unit]
+Description=Enforce Elf Mailroom backup retention independently of new backups
+Wants=network-online.target
+After=network-online.target
+[Service]
+Type=oneshot
+User=deploy
+EnvironmentFile=/etc/elfmailroom/backup.env
+ExecStart=/usr/bin/flock -n /var/www/elfmailroom/.backup.lock /usr/bin/python3 /var/www/elfmailroom/scripts/backup.py prune
+UMask=0077
+PrivateTmp=true
+NoNewPrivileges=true
+TimeoutStartSec=2h

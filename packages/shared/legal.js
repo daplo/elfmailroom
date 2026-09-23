@@ -1,7 +1,8 @@
+import {retentionCopy} from './retention-copy.js';
 import {polishLabels,polishPrivacy,polishTerms} from './legal-pl.js';
 import {localeCode,languages} from './locales.js';
 import {escapeHtml,siteOrigin,defaultSiteUrl,languagePath,legalPath} from './seo.js';
-export const policyVersion='2026-09-18-v4';
+export const policyVersion='2026-09-23-v5';
 export const legalFields={name:'VITE_BUSINESS_NAME',address:'VITE_BUSINESS_ADDRESS',country:'VITE_BUSINESS_COUNTRY',email:'VITE_SUPPORT_EMAIL',retention:'VITE_PRIVACY_RETENTION',providers:'VITE_PRIVACY_PROVIDERS'};
 export function legalConfig(env={}){const result={};for(const[key,name]of Object.entries(legalFields))result[key]=String(env[name]||'').trim();result.abn=String(env.VITE_BUSINESS_ABN||'').trim();result.ready=Object.keys(legalFields).every(key=>result[key].length>0)&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(result.email);return result;}
 export {legalPath} from './seo.js';
@@ -130,3 +131,6 @@ const internationalSales={
 for(const{code}of languages.filter(x=>x.code!=='pl')){privacy[code].splice(3,0,australianPrivacy[code]);terms[code].push(australianGuarantees[code],internationalSales[code]);}
 
 copy.pl=polishLabels;privacy.pl=polishPrivacy;terms.pl=polishTerms;
+
+const retentionIndex=privacy.en.findIndex(([title])=>title==='Retention and private links');
+for(const code of Object.keys(retentionCopy)){privacy[code][retentionIndex]=retentionCopy[code];terms[code].push(retentionCopy[code]);}

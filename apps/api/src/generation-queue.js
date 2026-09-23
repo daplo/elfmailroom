@@ -1,3 +1,4 @@
+import {expiredOrder} from './retention.js';
 import {createHash,randomUUID} from 'node:crypto';
 import {migrateRevisions,generatedVersion} from './letter-revisions.js';
 export function migrateGeneration(db){
@@ -17,7 +18,7 @@ export function createGenerationQueue({db,generate,now=Date.now,maxAttempts=3,re
    db.prepare("UPDATE orders SET generation_status='failed',generation_error='generation_interrupted' WHERE status='paid' AND generation_status='generating' AND generation_lease<=? AND generation_attempts>=?").run(time,maxAttempts);
    db.exec("UPDATE rewrite_requests SET status='failed' WHERE status='queued' AND id IN (SELECT active_request_id FROM orders WHERE generation_status='failed');");
    const order=db.prepare("SELECT * FROM orders WHERE status='paid' AND child_details IS NOT NULL AND generation_attempts<? AND generation_next<=? AND (generation_status IN ('queued','retrying') OR (generation_status='generating' AND generation_lease<=?)) ORDER BY rowid LIMIT 1").get(maxAttempts,time,time);
-   if(!order)return false;
+   if(!order||expiredOrder(order,time))return false;
    const token=randomUUID();
    const lock=db.prepare("UPDATE orders SET generation_status='generating',generation_attempts=generation_attempts+1,generation_lease=?,generation_token=? WHERE id=? AND generation_attempts=? AND (generation_status IN ('queued','retrying') OR generation_lease<=?)").run(time+180000,token,order.id,order.generation_attempts,time);
    if(!lock.changes)return false;

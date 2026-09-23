@@ -1,3 +1,4 @@
+import {expiredOrder} from './retention.js';
 import {randomUUID} from 'node:crypto';
 export function migrateRevisions(db){
  const columns=[['terms_version','TEXT'],['terms_accepted_at','INTEGER'],['terms_language','TEXT'],['terms_snapshot','TEXT'],['link_token_hash','TEXT'],['created_at','INTEGER NOT NULL DEFAULT 0'],['amount_cents','INTEGER'],['letter_version','INTEGER NOT NULL DEFAULT 0'],['accepted_version','INTEGER'],['accepted_at','INTEGER'],['rewrite_count','INTEGER NOT NULL DEFAULT 0'],['active_request_id','TEXT'],['email_status',"TEXT NOT NULL DEFAULT 'not_requested'"]];
@@ -12,7 +13,7 @@ export function transaction(db,work){db.exec('BEGIN IMMEDIATE');try{const value=
 export function conflict(message){return Object.assign(new Error(message),{status:409});}
 export function maxRewrites(){const n=Number(process.env.MAX_REWRITES_PER_ORDER||5);return Number.isInteger(n)&&n>=0&&n<=50?n:5;}
 export function isWorking(order){return ['queued','generating','retrying'].includes(order.generation_status);}
-function editable(order,version){if(!order||order.status!=='paid')throw conflict('This purchase has not been paid.');if(order.letter_version!==version)throw conflict('The letter has changed. Refresh and review the latest version.');if(isWorking(order))throw conflict('A letter is already being written. Please wait for it to finish.');if(order.email_status==='sending')throw conflict('An email is being sent. Please try again in a moment.');}
+function editable(order,version){if(expiredOrder(order))throw conflict('This letter has expired.');if(!order||order.status!=='paid')throw conflict('This purchase has not been paid.');if(order.letter_version!==version)throw conflict('The letter has changed. Refresh and review the latest version.');if(isWorking(order))throw conflict('A letter is already being written. Please wait for it to finish.');if(order.email_status==='sending')throw conflict('An email is being sent. Please try again in a moment.');}
 export function queueRewrite(db,id,{version,instructions,avoid},limit=maxRewrites()){
  return transaction(db,()=>{
   const order=db.prepare('SELECT * FROM orders WHERE id=?').get(id);editable(order,version);
@@ -31,7 +32,8 @@ export function saveManualLetter(db,id,{version,letter,editor}){return transacti
  return next;
 });}
 export function generatedVersion(db,order,result,fingerprint,token){return transaction(db,()=>{
- const current=db.prepare('SELECT * FROM orders WHERE id=?').get(order.id);if(current.generation_token!==token||current.generation_status!=='generating')return false;
+ const current=db.prepare('SELECT * FROM orders WHERE id=?').get(order.id);if(!current||expiredOrder(current))return false;
+ if(current.generation_token!==token||current.generation_status!=='generating')return false;
  const next=current.letter_version+1;const request=current.active_request_id?db.prepare('SELECT * FROM rewrite_requests WHERE id=?').get(current.active_request_id):null;
  db.prepare('INSERT INTO letter_versions(order_id,version,letter,source,instructions,created_at,model,response_id,body_hash) VALUES(?,?,?,?,?,?,?,?,?)').run(order.id,next,result.letter,request?'rewrite':'generated',request?JSON.stringify({instructions:request.instructions,avoid:JSON.parse(request.avoid)}):null,Date.now(),result.model,result.responseId,fingerprint);
  db.prepare("UPDATE orders SET letter=?,letter_hash=?,letter_version=?,generation_status='ready',generation_error=NULL,generation_lease=0,generation_model=?,generation_response_id=?,accepted_version=NULL,accepted_at=NULL,email_status=CASE WHEN email_status='not_requested' THEN email_status ELSE 'queued' END WHERE id=? AND generation_token=?").run(result.letter,fingerprint,next,result.model,result.responseId,order.id,token);

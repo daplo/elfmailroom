@@ -1,3 +1,4 @@
+import {expiredOrder} from './retention.js';
 import {randomUUID} from 'node:crypto';
 export function migrateEmail(db){
  const columns=[['buyer_email','TEXT'],['email_status',"TEXT NOT NULL DEFAULT 'not_requested'"],['email_attempts','INTEGER NOT NULL DEFAULT 0'],['email_next','INTEGER NOT NULL DEFAULT 0'],['email_lease','INTEGER NOT NULL DEFAULT 0'],['email_token','TEXT'],['email_error','TEXT'],['email_message_id','TEXT'],['email_sent_at','INTEGER']];
@@ -13,7 +14,7 @@ export function createEmailQueue({db,send,now=Date.now,retryDelay=60000,maxAttem
    // A crash during SMTP may happen after acceptance. Keep it for operator review instead of blindly resending.
    db.prepare("UPDATE orders SET email_status='failed',email_error='delivery_unknown' WHERE email_status='sending' AND email_lease<=?").run(time);
    const order=db.prepare("SELECT * FROM orders WHERE status='paid' AND letter!='' AND generation_status='ready' AND buyer_email IS NOT NULL AND email_status IN ('queued','retrying') AND email_attempts<? AND email_next<=? ORDER BY rowid LIMIT 1").get(maxAttempts,time);
-   if(!order)return false;
+   if(!order||expiredOrder(order,time))return false;
    const token=randomUUID();
    const lock=db.prepare("UPDATE orders SET email_status='sending',email_attempts=email_attempts+1,email_lease=?,email_token=? WHERE id=? AND generation_status='ready' AND email_status IN ('queued','retrying') AND email_attempts=?").run(time+180000,token,order.id,order.email_attempts);
    if(!lock.changes)return false;
