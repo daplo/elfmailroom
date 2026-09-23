@@ -8,7 +8,7 @@ function wrap(ctx,text,maxWidth){const lines=[];for(const paragraph of text.spli
 export async function renderPreview({text,design,language,width}){
  const theme=getDesign(design),copy=stationery[localeCode(language)];
  await loadLetterFonts();
- const art=new Image();art.src=`/assets/stationery/${theme.art}.webp`;await art.decode();
+ const art=new Image();art.src=`/assets/stationery/${theme.art}-preview.webp`;await art.decode();
  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
  const margin=width<400?28:45,font=width<400?16:18,lineHeight=font*1.6;
  const {greeting,body}=splitLetterGreeting(text,language);

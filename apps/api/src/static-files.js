@@ -1,5 +1,7 @@
 import express from 'express';
 import path from 'node:path';
+import {designs} from '../../../packages/shared/config.js';
+const publicStationery=new Set(designs.flatMap(({art})=>[`/${art}-thumb.webp`,`/${art}-preview.webp`]));
 
 const year=365*24*60*60,week=7*24*60*60;
 const media=/\.(?:avif|webp|png|jpe?g|gif|svg|ico|woff2?|ttf|otf)$/i;
@@ -14,6 +16,10 @@ function headers(directory,privateHtml=false){return(res,file)=>{
 };}
 
 export function mountStaticFiles(app,{landingDir,letterDir}){
+ app.use(['/assets/stationery','/write/assets/stationery'],(req,res,next)=>{
+  if(publicStationery.has(req.path))return next();
+  res.set('Cache-Control','no-store').status(404).end();
+ });
  app.use('/write',(req,res,next)=>{res.set('X-Robots-Tag','noindex, nofollow');next();});
  app.use('/write',express.static(letterDir,{setHeaders:headers(letterDir,true)}));
  app.get('/write/{*path}',(req,res)=>{

@@ -1,6 +1,6 @@
 import BlogImage from './BlogImage';
 import CookieConsent from '@elf/shared/cookies';
-import React,{useState,useEffect} from 'react';
+import React,{useState,useEffect,useRef} from 'react';
 import {ArrowRight,Check,Heart,ShieldCheck,Mail,PenLine,Sparkles,Menu,X,ChevronDown,Printer} from 'lucide-react';
 import {santaLetterPrice,designs} from '@elf/shared';
 import {languages,localizedSample,digitalNotice} from '@elf/shared/locales';
@@ -21,18 +21,26 @@ function PersonalisedLetter(){
  const{language,t}=useLocale();
  const[example,setExample]=useState('Sophie');
  const[design,setDesign]=useState('classic');
+ const[mobile,setMobile]=useState(false);
+ const carousel=useRef(null),picker=useRef(null);
+ useEffect(()=>{const query=matchMedia('(max-width:760px)');const update=()=>setMobile(query.matches);update();query.addEventListener('change',update);return()=>query.removeEventListener('change',update)},[]);
+ useEffect(()=>{if(mobile&&carousel.current)carousel.current.scrollLeft=designs.findIndex(theme=>theme.id===design)*carousel.current.clientWidth},[mobile]);
+ function chooseDesign(id){setDesign(id);if(mobile&&carousel.current)carousel.current.scrollTo({left:designs.findIndex(theme=>theme.id===id)*carousel.current.clientWidth,behavior:'instant'})}
+ function scrollDesign(event){const track=event.currentTarget;const index=Math.round(track.scrollLeft/track.clientWidth);if(designs[index]){setDesign(designs[index].id);const option=picker.current?.children[index];if(option)picker.current.scrollTo({left:option.offsetLeft-picker.current.offsetLeft,behavior:'instant'})}}
+
  return <section className="personalised wrap" id="letters">
   <div className="sample-scene">
    <fieldset className="sample-design-picker">
     <legend>{t('Choose your letter design')}</legend>
-    <div className="sample-design-grid">{designs.map(theme=><label className={`sample-design-option ${design===theme.id?'selected':''}`} key={theme.id}>
-     <input type="radio" className="sr-only" name="sample-design" value={theme.id} checked={design===theme.id} onChange={()=>setDesign(theme.id)}/>
-     <span className="sample-design-paper" aria-hidden="true"><img src={`/assets/stationery/${theme.art}.webp`} width="1024" height="1536" alt="" loading="lazy"/><span className="sample-design-lines"/></span>
+    <div className="sample-design-grid" ref={picker}>{designs.map(theme=><label className={`sample-design-option ${design===theme.id?'selected':''}`} key={theme.id}>
+     <input type="radio" className="sr-only" name="sample-design" value={theme.id} checked={design===theme.id} onChange={()=>chooseDesign(theme.id)}/>
+     <span className="sample-design-paper" aria-hidden="true"><img src={`/assets/stationery/${theme.art}-thumb.webp`} width="192" height="288" alt="" loading="lazy"/><span className="sample-design-lines"/></span>
      <span className="sample-design-name">{t(theme.name)}</span><span className="sample-design-check" aria-hidden="true">{design===theme.id&&<Check size={12}/>}</span>
     </label>)}</div>
    </fieldset>
    <div className="sample-tabs" role="group">{['Sophie','Oliver'].map(name=><button key={name} className={example===name?'active':''} aria-pressed={example===name} onClick={()=>setExample(name)}><Mail size={13} aria-hidden="true"/>{t('{name}’s letter',{name})}</button>)}</div>
-   <div className="selected-sample"><Holly className="sample-holly"/><LetterCard text={localizedSample(language,example)} language={language} design={design} sample/></div>
+   <div className="selected-sample"><Holly className="sample-holly"/>{mobile?<div className="sample-preview-carousel" ref={carousel} onScroll={scrollDesign} tabIndex={0} role="group" aria-label={t('Choose your letter design')} onKeyDown={event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key))return;event.preventDefault();const index=designs.findIndex(theme=>theme.id===design)+(event.key==='ArrowRight'?1:-1);if(designs[index])chooseDesign(designs[index].id)}}>{designs.map(theme=><div className="sample-preview-slide" key={theme.id} aria-hidden={theme.id!==design} inert={theme.id!==design?true:undefined}><LetterCard text={localizedSample(language,example)} language={language} design={theme.id} sample/></div>)}</div>:<LetterCard text={localizedSample(language,example)} language={language} design={design} sample/>}</div>
+   {mobile&&<div className="sample-carousel-controls" role="group" aria-label={t('Choose your letter design')}>{designs.map((theme,index)=><button key={theme.id} onClick={()=>chooseDesign(theme.id)} aria-label={t(theme.name)} aria-pressed={theme.id===design}><span/>{theme.id===design&&<small>{index+1} / {designs.length}</small>}</button>)}</div>}
    <div className="sample-caption"><strong aria-live="polite">{t(designs.find(theme=>theme.id===design).name)}</strong>{t('A little peek at the magic · Fictional example')}</div>
   </div>
   <div className="personal-copy"><FestiveFlourish kind="letter"/><h2>{seoCopy[language].example}</h2><p>{t('Their favourite toy. A brave little moment. That very special Christmas wish.')}</p><p>{t('Choose English, German, Spanish, French or Polish for their letter.')}</p><p>{t('Your letter is created with AI from the details you choose to share. You review the words before downloading.')}</p><ul className="check-list">{['Six illustrated themes','Five rewrite requests included','A downloadable, print-ready PDF'].map(x=><li key={x}><Check size={17}/>{t(x)}</li>)}</ul><Button>{t('Create my child’s letter')}</Button><DigitalNotice/></div>

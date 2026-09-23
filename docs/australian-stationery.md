@@ -4,7 +4,7 @@ Generated with the built-in imagegen tool, then encoded as WebP for the browser 
 
 ## Santa’s Beach Christmas (`beach`)
 
-- Web: `public/assets/stationery/santa-beach.webp`
+- Web: `public/assets/stationery/santa-beach-thumb.webp`
 - PDF: `apps/api/assets/stationery/santa-beach.jpg`
 - Preview footer ratio: 0.60, to include the full festive umbrella.
 - Restored the original seated Santa with presents, flip-flops and a festive beach umbrella at the user's request. Garamond text and the large handwritten greeting remain unchanged.
@@ -28,7 +28,7 @@ Use case: illustration-story. Create a completely NEW illustration from scratch,
 
 ## Kangaroo Christmas BBQ (`barbecue`)
 
-- Web: `public/assets/stationery/kangaroo-bbq.webp`
+- Web: `public/assets/stationery/kangaroo-bbq-thumb.webp`
 - PDF: `apps/api/assets/stationery/kangaroo-bbq.jpg`
 
 Initial prompt:
@@ -44,3 +44,7 @@ Use case: precise-object-edit. Edit this stationery background, preserving exact
 Both designs use cream paper and are available in the landing sample gallery, customer builder, admin test form, purchase review and PDF exports. Names and descriptions cover all five website languages. They are available to everyone, without changing the selected letter language or generation prompt.
 
 The shared catalogue drives API validation. Tests cover assets, translations, admin selection, all six PDFs, and desktop/mobile sample selection. `node scripts/render-stationery.mjs` renders both Australian PDFs to `tmp/pdfs/` for visual inspection.
+
+## Public artwork protection
+
+Full-resolution originals live only in `apps/api/assets/stationery/` for server-side PDF/email generation. Run `node scripts/build-stationery-previews.mjs` to produce 192×288 thumbnails and 512×768 previews with baked-in watermarks. Only these derivatives are public; the server rejects legacy original URLs, including under `/write`. Visible previews can still be copied. Previously downloaded or externally cached originals cannot be revoked.

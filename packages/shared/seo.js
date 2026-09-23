@@ -24,7 +24,7 @@ export const landingFaqs=[
 ];
 export function seoData(language='en',{origin=defaultSiteUrl,checkoutEnabled=false}={}){
  const code=localeCode(language),base=siteOrigin(origin),url=base+languagePath(code),copy=seoCopy[code],t=key=>translate(code,key);
- const product={'@type':'Product','@id':base+'/#santa-letter',name:t('Personalised Santa Letter'),description:copy.description,image:base+'/assets/stationery/santa.webp',url:url+'#pricing',category:'Digital printable letter',brand:{'@type':'Brand',name:'Elf Mailroom'}};
+ const product={'@type':'Product','@id':base+'/#santa-letter',name:t('Personalised Santa Letter'),description:copy.description,image:base+'/assets/stationery/santa-preview.webp',url:url+'#pricing',category:'Digital printable letter',brand:{'@type':'Brand',name:'Elf Mailroom'}};
  // Do not advertise an active offer when checkout is unavailable. No invented reviews or ratings.
  if(checkoutEnabled)product.offers={'@type':'Offer',url:url+'#pricing',price:(santaLetterPrice.amount/100).toFixed(2),priceCurrency:santaLetterPrice.currency.toUpperCase(),availability:'https://schema.org/InStock',seller:{'@id':base+'/#organization'}};
  return {...copy,code,url,image:base+'/assets/mailroom.webp',alternates:[...languages.map(x=>({language:x.code,url:base+languagePath(x.code)})),{language:'x-default',url:base+'/'}],schema:{'@context':'https://schema.org','@graph':[

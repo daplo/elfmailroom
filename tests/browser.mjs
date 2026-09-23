@@ -49,6 +49,17 @@ for(const width of [1440,360]){
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  }
 }
+// Mobile preview scroll changes the design without returning to the thumbnail row.
+const carousel=page.locator('.sample-preview-carousel');
+for(const index of [0,1,5,4]){
+ await carousel.evaluate((el,index)=>el.scrollTo({left:el.clientWidth*index,behavior:'instant'}),index);
+ await page.waitForFunction(id=>document.querySelector(`input[name="sample-design"][value="${id}"]`).checked,designs[index].id);
+ assert.equal(await page.locator('.sample-caption strong').textContent(),designs[index].name);
+}
+await carousel.focus();await page.keyboard.press('ArrowLeft');
+await page.waitForFunction(id=>document.querySelector(`input[name="sample-design"][value="${id}"]`).checked,designs[3].id);
+await page.locator('.sample-design-option').first().click();
+await page.waitForFunction(()=>document.querySelector('.sample-preview-carousel').scrollLeft===0);
 await page.setViewportSize({width:1440,height:1000});
 await page.getByRole('button',{name:'Oliver’s letter'}).click();assert.match(await page.locator('.preview-accessible p').textContent(),/Dear Oliver/);
 await page.getByText('Is the letter really personalised?',{exact:true}).click();assert(await page.locator('.faq-list details').first().getAttribute('open')!==null);

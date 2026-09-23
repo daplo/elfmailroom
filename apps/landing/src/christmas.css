@@ -169,3 +169,15 @@
  .cozy-surprise.is-playing .surprise-sparkles>i{opacity:1;transform:none}
  .christmas-landing .parent-points article:hover,.christmas-landing .parent-points article:hover>span,.christmas-landing .trust-strip>span:hover .christmas-doodle{transform:none}
 }
+
+@media(max-width:760px){
+ .sample-preview-carousel{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:thin;width:100%;align-items:flex-start}
+ .sample-preview-slide{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;padding:6px;box-sizing:border-box}
+ .sample-preview-slide .letter-card{width:100%;margin:0;box-sizing:border-box;transform:none}
+ .sample-preview-carousel:focus-visible{outline:2px solid #79956d;outline-offset:3px}
+ .sample-carousel-controls{display:flex;justify-content:center;gap:2px;margin:10px 0}
+ .sample-carousel-controls button{display:flex;align-items:center;justify-content:center;gap:6px;min-width:44px;min-height:44px;border:0;background:transparent;color:#405b41;cursor:pointer}
+ .sample-carousel-controls button>span{width:8px;height:8px;border-radius:50%;background:#c4ccb8}
+ .sample-carousel-controls button[aria-pressed=true]>span{background:#496c42}
+ .sample-carousel-controls small{font-size:11px;white-space:nowrap}
+}
