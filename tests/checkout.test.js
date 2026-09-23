@@ -13,3 +13,20 @@ test('Stripe checkout follows the website locale and describes a digital downloa
  const {languages,translate,digitalNotice}=await import('../packages/shared/locales.js');
  for(const{code}of languages){let request;await createLetterCheckout({checkout:{sessions:{create:async value=>{request=value;return {id:'test'}}}}},{email:'parent@example.com',orderId:'test',origin:'https://example.com',language:code});assert.equal(request.locale,code);assert.equal(request.line_items[0].price_data.product_data.description,translate(code,digitalNotice));assert.equal(request.line_items[0].price_data.unit_amount,399);}
 });
+
+
+test('catalogue checkout uses the trusted multi-currency price and retains fulfillment details',async()=>{
+ let request,options;
+ const stripe={checkout:{sessions:{create:async(value,opts)=>{request=value;options=opts;return{id:'session'}}}}};
+ await createLetterCheckout(stripe,{email:'parent@example.com',orderId:'order-catalogue',origin:'https://example.com',returnUrl:'https://example.com/write/purchase/private',language:'pl',priceId:'price_untrusted',currency:'cad',quantity:99},{priceId:'price_configured'});
+ assert.deepEqual(request.line_items,[{quantity:1,price:'price_configured'}]);
+ assert.equal(request.currency,undefined);
+ assert.deepEqual(request.consent_collection,{terms_of_service:'required'});
+ assert.equal(request.locale,'pl');assert.equal(request.customer_email,'parent@example.com');
+ assert.deepEqual(request.metadata,{orderId:'order-catalogue'});
+ assert.equal(request.success_url,'https://example.com/write/purchase/private');
+ assert.equal(request.cancel_url,'https://example.com/write/?cancelled=1');
+ assert.deepEqual(options,{idempotencyKey:'order-catalogue'});
+ assert.equal(request.adaptive_pricing.enabled,false);
+ assert.throws(()=>createLetterCheckout(stripe,{}, {priceId:'invalid'}),/Invalid configured/);
+});
