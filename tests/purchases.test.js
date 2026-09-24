@@ -22,6 +22,11 @@ test('cross-device purchase review, rewrite, acceptance, PDF storage and admin v
   db.prepare("INSERT INTO letter_versions(order_id,version,letter,source,created_at) VALUES(?,1,?,'generated',?)").run(id,original,Date.now());
   const request=(route,body,{token:access,cookie,foreign=false}={})=>fetch(origin+'/api/'+route,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',Origin:foreign?'https://evil.example':origin,...(access?{Authorization:`Bearer ${access}`} :{}),...(cookie?{Cookie:cookie}:{})},...(body?{body:JSON.stringify(body)}:{})});
   assert.equal((await request(`orders/${id}`)).status,404);assert.equal((await request(`orders/${id}`,null,{token:'a'.repeat(64)})).status,404);assert.equal((await request(`orders/${id}/pdf`,null,{token})).status,409);
+  assert.equal((await request(`orders/${id}/preview`)).status,404);
+  assert.equal((await request(`orders/${id}/preview`,null,{token:'b'.repeat(64)})).status,404);
+  const preview=await request(`orders/${id}/preview`,null,{token});assert.equal(preview.status,200);assert.equal(preview.headers.get('cache-control'),'no-store');assert.equal(preview.headers.get('content-type'),'application/pdf');
+  assert.equal(Buffer.from(await preview.arrayBuffer()).subarray(0,5).toString(),'%PDF-');
+  db.prepare('DELETE FROM letter_pdfs WHERE order_id=?').run(id);
   const first=await request(`orders/${id}`,null,{token}).then(r=>r.json());assert.equal(first.letter,original);assert.equal(first.language,'de');assert.equal(first.accepted,false);assert.match(first.purchaseUrl,/#token=/);
   assert.equal((await request(`orders/${id}/rewrite`,{version:1,instructions:'Make it playful and leave out the dog and present.',avoid:['Biscuit','bicycle']},{token,foreign:true})).status,403);
   assert.equal((await request(`orders/${id}/rewrite`,{version:1,instructions:'Make it playful and leave out the dog and present.',avoid:['Biscuit','bicycle']},{token})).status,202);

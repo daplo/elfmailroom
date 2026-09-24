@@ -8,7 +8,7 @@ const script=fileURLToPath(new URL('../assets/fonts/Allura-Regular.ttf',import.m
 export function createLetterPdf(letter,design='classic',language='en'){
  return new Promise((resolve,reject)=>{
   const theme=getDesign(design),copy=stationery[localeCode(language)];
-  const bodySize=['jolly','beach'].includes(design)?11.5:12;
+  let bodySize=['jolly','beach'].includes(design)?11.5:12;
   const artwork=fileURLToPath(new URL(`../assets/stationery/${theme.art}.jpg`,import.meta.url));
   const doc=new PDFDocument({size:'A4',margins:{top:160,bottom:design==='jolly'?400:design==='beach'?380:340,left:58,right:58},bufferPages:true,info:{Title:'Your letter from Santa',Author:'Elf Mailroom',Subject:theme.name}});
   const chunks=[];doc.on('data',c=>chunks.push(c));doc.on('end',()=>resolve(Buffer.concat(chunks)));doc.on('error',reject);
@@ -23,7 +23,7 @@ export function createLetterPdf(letter,design='classic',language='en'){
     const artX=(w-artWidth)/2,artY=(h-artHeight)/2;
     const frameLeft=artX+artWidth*theme.frameInset,frameRight=artX+artWidth*(1-theme.frameInset);
     const frameTop=artY+artWidth*theme.frameTop,frameBottom=artY+artHeight-artWidth*theme.frameBottom;
-    doc.save().moveTo(frameLeft,frameTop).lineTo(frameLeft,frameBottom).moveTo(frameRight,frameTop).lineTo(frameRight,frameBottom).moveTo(frameLeft,frameTop).lineTo(frameRight,frameTop).moveTo(frameLeft,frameBottom).lineTo(frameRight,frameBottom).lineWidth(5).stroke(letterBorderInk).restore();
+    doc.save().rect(frameLeft,frameTop,frameRight-frameLeft,frameBottom-frameTop).lineJoin('miter').lineWidth(5).stroke(letterBorderInk).restore();
     doc.font('Helvetica').fontSize(6).fillColor(theme.accent).text(copy.desk,58,88,{width:w-116,align:'center',characterSpacing:2,lineBreak:false});
     doc.font('Letter').fontSize(28).fillColor(theme.ink).text(copy.santa,58,102,{width:w-116,align:'center',lineBreak:false});
     doc.moveTo(58,139).lineTo(w-58,139).lineWidth(.5).stroke(theme.border);
@@ -36,9 +36,19 @@ export function createLetterPdf(letter,design='classic',language='en'){
     doc.font('Signature').fontSize(30).fillColor(theme.accent).text(greeting,58,170,{width:doc.page.width-116,lineGap:0,paragraphGap:0});
     doc.y+=10;
    }
+   // Measure the complete writing area, reserving room for the signature.
+   const contentBottom=doc.page.height-doc.page.margins.bottom;
+   const bodyTop=doc.y,signatureSpace=44;
+   const prose=body.replace(/\n{2,}/g,'\n');
+   let lineGap=design==='jolly'?1:2,paragraphGap=5;
+   const options=()=>({width:doc.page.width-116,lineGap,paragraphGap});
+   const measured=()=>doc.font('Letter').fontSize(bodySize).heightOfString(prose,options());
+   if(bodyTop+measured()+signatureSpace>contentBottom){lineGap=0;paragraphGap=3;}
+   while(bodySize>9.5&&bodyTop+measured()+signatureSpace>contentBottom)bodySize=Math.max(9.5,bodySize-.25);
+   doc.page.margins.bottom+=signatureSpace;
    doc.font('Letter').fontSize(bodySize).fillColor(letterBodyInk);
-   doc.text(body,58,doc.y,{width:doc.page.width-116,lineGap:design==='jolly'?1:2,paragraphGap:0});
-   if(doc.y>(design==='jolly'?442:510))doc.addPage();
+   doc.text(prose,58,bodyTop,options());
+   if(doc.y+signatureSpace>contentBottom)doc.addPage();
    const signY=doc.y+12;
    // Signing area is reserved above the footer artwork, outside the body text margin.
    doc.page.margins.bottom=290;

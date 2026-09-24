@@ -48,3 +48,20 @@ test('wide names wrap inside PDF margins and long letters keep their final words
  assert.equal(count,1);assert(all.replace(/\s/g,'').includes(greeting.replace(/\s/g,'')));assert(all.includes('FINAL WORDS'));
  await task.destroy();
 });
+
+test('repeated Polish salutation is removed without losing the following sentence',()=>{
+ assert.deepEqual(splitLetterGreeting('Cześć, Daniel!\n\nCześć Daniel! W mojej wierzbie dzwonki dźwięczą.','pl'),{greeting:'Cześć, Daniel!',body:'W mojej wierzbie dzwonki dźwięczą.'});
+});
+
+test('200-word letters keep their closing and signature on one page in all designs',async()=>{
+ const paragraph='Your kindness brings joy to everyone around you. The elves are preparing wonderful surprises while the reindeer practise flying across the snowy sky. Keep learning and sharing your lovely smile with your family and friends. You make Christmas feel magical.';
+ const letter='Dear Daniel,\n\n'+Array(5).fill(paragraph).join('\n\n')+'\n\nWarm wishes and a cosy night!';
+ for(const design of designs){
+  const task=getDocument({data:new Uint8Array(await createLetterPdf(letter,design.id)),useSystemFonts:true});
+  const pdf=await task.promise;assert.equal(pdf.numPages,1,design.id);
+  const items=(await(await pdf.getPage(1)).getTextContent()).items;
+  assert(items.some(i=>i.str.includes('Warm wishes and a cosy night!')),design.id);
+  assert(items.some(i=>i.str==='Santa Claus'&&i.height===32),design.id);
+  await task.destroy();
+ }
+});

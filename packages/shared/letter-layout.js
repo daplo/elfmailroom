@@ -9,5 +9,11 @@ export function splitLetterGreeting(text,language='en'){
  const [prefix,suffix]=stationery[localeCode(language)].greeting('\0').split('\0');
  const name=greeting.slice(prefix.length,suffix?-suffix.length:undefined);
  if(!greeting.startsWith(prefix)||!greeting.endsWith(suffix)||!name.trim()||greeting.length>160)return {greeting:'',body:normalized};
- return {greeting,body:rest.join('\n').replace(/^\n+/,'')};
+ let body=rest.join('\n').replace(/^\n+/,'');
+ // Generated prose can repeat the same salutation without the heading's comma.
+ const escape=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ const words=greeting.replace(/[,!:.?]+/g,' ').trim().split(/\s+/).map(escape);
+ const repeated=new RegExp('^'+words.join('[,\\s]+')+'[,!:.?]+(?:\\s+|$)','iu');
+ body=body.replace(repeated,'');
+ return {greeting,body};
 }

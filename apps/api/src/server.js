@@ -1,3 +1,4 @@
+import {createCheckoutAnalytics} from './checkout-analytics.js';
 import {createTelegramNotifications} from './telegram.js';
 import {migrateRetention,purgeExpiredLetters,expiredOrder,retentionDeadline,markOrderPaid} from './retention.js';
 import express from 'express';
@@ -40,6 +41,7 @@ const emailEnabled=emailConfigured();
 if(emailEnabled)createEmailQueue({db,send:createEmailSender({pdf:(_letter,_design,order)=>storedPdf(db,order)})}).start();
 const generationQueue=createGenerationQueue({db,generate:createLetterGenerator()});
 if(process.env.OPENAI_API_KEY)generationQueue.start();
+const analytics=createCheckoutAnalytics({db});analytics.start();
 const telegram=createTelegramNotifications({db});telegram.start();
 const stripe=process.env.STRIPE_SECRET_KEY?new Stripe(process.env.STRIPE_SECRET_KEY):null;
 const origin=process.env.PUBLIC_URL||'http://localhost:5173';
@@ -47,7 +49,7 @@ const policyState=publishedPolicies(process.env,path.join(root,'apps/landing/dis
 const policies=policyState.config;
 const ready=Boolean(policyState.ready&&linkConfigured()&&process.env.OPENAI_API_KEY&&stripe&&process.env.STRIPE_WEBHOOK_SECRET&&process.env.SALES_ENABLED==='true'&&process.env.PRIVACY_URL&&process.env.TERMS_URL);
 app.use(helmet({contentSecurityPolicy:false,referrerPolicy:{policy:'no-referrer'}}));
-app.post('/api/webhook',express.raw({type:'application/json'}),(req,res)=>{if(!stripe||!process.env.STRIPE_WEBHOOK_SECRET)return res.sendStatus(503);try{const event=stripe.webhooks.constructEvent(req.body,req.headers['stripe-signature'],process.env.STRIPE_WEBHOOK_SECRET);if(['checkout.session.completed','checkout.session.async_payment_succeeded'].includes(event.type)){const session=event.data.object;if(session.payment_status==='paid')markOrderPaid(db,session.metadata.orderId,session.id,event.created*1000);}telegram.event(event);res.json({received:true});}catch{res.status(400).json({error:'Invalid webhook signature.'});}});
+app.post('/api/webhook',express.raw({type:'application/json'}),(req,res)=>{if(!stripe||!process.env.STRIPE_WEBHOOK_SECRET)return res.sendStatus(503);try{const event=stripe.webhooks.constructEvent(req.body,req.headers['stripe-signature'],process.env.STRIPE_WEBHOOK_SECRET);if(['checkout.session.completed','checkout.session.async_payment_succeeded'].includes(event.type)){const session=event.data.object;if(session.payment_status==='paid')markOrderPaid(db,session.metadata.orderId,session.id,event.created*1000);}telegram.event(event);analytics.event(event);res.json({received:true});}catch{res.status(400).json({error:'Invalid webhook signature.'});}});
 app.use(express.json({limit:'24kb'}));
 app.use('/api',(req,res,next)=>{res.set('X-Robots-Tag','noindex, nofollow');next();});
 app.use('/api',rateLimit({windowMs:60000,limit:90,standardHeaders:'draft-8',legacyHeaders:false}));
@@ -70,8 +72,9 @@ function ownedOrder(req){
  const account=user(req);const token=guestToken(req);if((account&&order.user_id===account.id)||(token&&order.access_token===hash(token)))return order;
  return null;
 }
+app.post('/api/analytics/revoke',authLimit,(req,res)=>{const id=req.body?.clientId;if(typeof id==='string'&&/^\d{1,20}\.\d{1,20}$/.test(id))analytics.revoke(id);res.json({ok:true});});
 app.post('/api/checkout',async(req,res)=>{
- const parsed=z.object({uiLanguage:z.enum(['en','de','es','fr','pl']).default('en'),details:letterDetailsSchema,design:z.enum(designs.map(d=>d.id)),email:z.email().max(254),consent:z.literal(true)}).safeParse(req.body);
+ const parsed=z.object({uiLanguage:z.enum(['en','de','es','fr','pl']).default('en'),details:letterDetailsSchema,design:z.enum(designs.map(d=>d.id)),email:z.email().max(254),consent:z.literal(true),analytics:z.object({clientId:z.string().max(45),sessionId:z.number().int().positive(),consent:z.literal('accepted'),expires:z.number().int()}).optional()}).safeParse(req.body);
  if(!parsed.success)return res.status(400).json({error:'Add your email, choose a design and accept the purchase terms.'});
  if(!ready)return res.status(503).json({error:'The mailroom is not taking payments yet. Your preview is ready to enjoy.'});
  const token=/^[a-f0-9]{64}$/.test(guestToken(req)||'')?guestToken(req):randomBytes(32).toString('hex');
@@ -79,13 +82,20 @@ app.post('/api/checkout',async(req,res)=>{
  const id=randomUUID();const {details,design,email}=parsed.data;
  db.prepare('INSERT INTO orders(id,user_id,letter,design,access_token,child_details,buyer_email,email_status,link_token_hash,created_at,amount_cents,terms_version,terms_accepted_at,terms_language,terms_snapshot) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(id,user(req)?.id||'guest','',design,hash(token),JSON.stringify(details),email,emailEnabled?'queued':'not_requested',tokenHash(purchaseToken(id)),Date.now(),santaLetterPrice.amount,policyVersion,Date.now(),parsed.data.uiLanguage,policyDocument('terms',parsed.data.uiLanguage,policies,{origin}));
  db.prepare('UPDATE orders SET expires_at=? WHERE id=?').run(retentionDeadline(Date.now()),id);
- try{const checkout=await createLetterCheckout(stripe,{email,language:parsed.data.uiLanguage,orderId:id,origin,returnUrl:purchaseUrl(id,{origin})});db.prepare('UPDATE orders SET checkout_id=? WHERE id=?').run(checkout.id,id);telegram.enqueue('started:'+checkout.id,'started',id,checkout.livemode);res.json({url:checkout.url,purchaseUrl:purchaseUrl(id,{origin})});}catch{telegram.enqueue('unavailable:'+id,'unavailable',id,/^(sk|rk)_live_/.test(process.env.STRIPE_SECRET_KEY||''));res.status(502).json({error:'Checkout could not open. Please try again in a moment.'});}
+ analytics.attach(id,parsed.data.analytics);
+ try{const checkout=await createLetterCheckout(stripe,{email,language:parsed.data.uiLanguage,orderId:id,origin,returnUrl:purchaseUrl(id,{origin})});db.prepare('UPDATE orders SET checkout_id=? WHERE id=?').run(checkout.id,id);analytics.enqueue('started:'+checkout.id,id,'begin_checkout',checkout);telegram.enqueue('started:'+checkout.id,'started',id,checkout.livemode);res.json({url:checkout.url,purchaseUrl:purchaseUrl(id,{origin})});}catch{analytics.enqueue('unavailable:'+id,id,'checkout_failed',{livemode:/^(sk|rk)_live_/.test(process.env.STRIPE_SECRET_KEY||''),reason:'checkout_unavailable'});telegram.enqueue('unavailable:'+id,'unavailable',id,/^(sk|rk)_live_/.test(process.env.STRIPE_SECRET_KEY||''));res.status(502).json({error:'Checkout could not open. Please try again in a moment.'});}
 });
 app.use('/api/orders',(req,res,next)=>{res.set('Cache-Control','no-store');next();});
 app.get('/api/orders/:id',async(req,res)=>{
  const order=ownedOrder(req);if(!order)return res.status(404).json({error:'Open the complete private link for this purchase, including its token.'});
- if(order.status!=='paid'&&stripe&&order.checkout_id){try{const checkout=await stripe.checkout.sessions.retrieve(order.checkout_id);if(checkout.payment_status==='paid'){markOrderPaid(db,order.id,order.checkout_id);order.status='paid';}}catch{}}
+ if(order.status!=='paid'&&stripe&&order.checkout_id){try{const checkout=await stripe.checkout.sessions.retrieve(order.checkout_id);if(checkout.payment_status==='paid'){markOrderPaid(db,order.id,order.checkout_id);order.status='paid';analytics.event({type:'checkout.session.completed',livemode:checkout.livemode,data:{object:checkout}});}}catch{}}
  res.json({id:order.id,language:orderLanguage(order),status:order.status,design:order.design,generationStatus:order.generation_status,emailStatus:order.email_status,version:order.letter_version,accepted:order.accepted_version===order.letter_version&&Boolean(order.letter),rewritesRemaining:Math.max(0,maxRewrites()-order.rewrite_count),canRewrite:Boolean(order.child_details),purchaseUrl:order.link_token_hash&&linkConfigured()?purchaseUrl(order.id,{origin}):null,letter:order.status==='paid'&&order.letter?order.letter:null});
+});
+app.get('/api/orders/:id/preview',async(req,res)=>{
+ const order=ownedOrder(req);if(!order)return res.status(404).json({error:'Purchase not found.'});
+ if(order.status!=='paid')return res.status(402).json({error:'Payment is not confirmed.'});
+ if(!order.letter)return res.status(409).json({error:'Santa is still preparing your letter.'});
+ const pdf=await storedPdf(db,order);res.set({'Content-Type':'application/pdf','Content-Disposition':'inline; filename="letter-preview.pdf"'}).send(pdf);
 });
 app.get('/api/orders/:id/pdf',async(req,res)=>{
  const order=ownedOrder(req);if(!order)return res.status(404).json({error:'Purchase not found. Use its complete private link.'});

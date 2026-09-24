@@ -19,7 +19,7 @@ test('cleanup removes every content store and token, preserves accounting and ca
  migrateRetention(db,now);const old=db.prepare("SELECT * FROM orders WHERE id='old'").get();
  db.prepare("INSERT INTO letter_versions(order_id,version,letter,source,created_at) VALUES('old',1,'Child secret','generated',?)").run(now);
  db.prepare("INSERT INTO rewrite_requests VALUES('rewrite','old','private instructions','[]',1,'queued',?)").run(now);
- db.prepare("INSERT INTO letter_pdfs VALUES('old',1,?,?)").run(Buffer.from('private PDF'),now);
+ db.prepare("INSERT INTO letter_pdfs(order_id,version,pdf,created_at) VALUES('old',1,?,?)").run(Buffer.from('private PDF'),now);
  assert.equal(purgeExpiredLetters(db,now-1),0);assert.equal(purgeExpiredLetters(db,now),1);assert.equal(purgeExpiredLetters(db,now),0);
  const clean=db.prepare("SELECT * FROM orders WHERE id='old'").get();assert(expiredOrder(clean,now));
  for(const name of ['child_details','access_token','link_token_hash','generation_token','email_token'])assert.equal(clean[name],null);

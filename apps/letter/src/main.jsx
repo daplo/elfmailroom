@@ -1,3 +1,4 @@
+import {checkoutAnalyticsContext} from '../../../packages/shared/checkout-analytics.js';
 import CookieConsent from '@elf/shared/cookies';
 import React,{useState,useEffect} from 'react';
 import {createRoot} from 'react-dom/client';
@@ -26,7 +27,7 @@ function App(){
  useEffect(()=>{try{sessionStorage.setItem('elf-draft',JSON.stringify({details,design,email}))}catch{}},[details,design,email]);
  function go(next){setError('');setStep(next);window.scrollTo(0,0)}
  function update(e){setDetails({...details,[e.target.name]:e.target.value})}
- async function checkout(e){e.preventDefault();setBusy(true);setError('');try{const result=await api('checkout',{details,design,email,consent,uiLanguage:language});if(result.purchaseUrl)sessionStorage.setItem('elf-latest-purchase',result.purchaseUrl);location.assign(result.url)}catch(e){setError(e.message);setBusy(false)}}
+ async function checkout(e){e.preventDefault();setBusy(true);setError('');try{const result=await api('checkout',{details,design,email,consent,uiLanguage:language,analytics:checkoutAnalyticsContext()});if(result.purchaseUrl)sessionStorage.setItem('elf-latest-purchase',result.purchaseUrl);location.assign(result.url)}catch(e){setError(e.message);setBusy(false)}}
  return <><header className="builder-header"><Logo/><div className="customer-nav"><LanguagePicker/><a href={languagePath(language)}>← {t('Back to the mailroom')}</a></div></header><main className="builder">
  <SectionHeading title={t(['','Every bit of magic starts with them.','Dress their letter in Christmas magic.','A little magic, ready to make theirs.'][step])}/><DigitalNotice/><Progress step={step}/>
  {error&&step!==3&&<p className="error" role="alert">{t(error)}</p>}

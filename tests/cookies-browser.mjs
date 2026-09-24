@@ -29,7 +29,7 @@ try{
  assert.equal((await events()).filter(x=>x.name==='page_view').length,1,'Repeated acceptance must not duplicate tracking');
  await page.evaluate(()=>document.addEventListener('click',e=>{if(e.target.closest('a[href="/write/"],footer a'))e.preventDefault()}));
  await page.setViewportSize({width:1440,height:1000});
- for(const selector of ['.navbar','.hero','#letters','#pricing','.final-cta'])await page.locator(selector+' a.button').click({force:true});
+ for(const selector of ['.navbar','.hero','#letters','#pricing','.final-cta'])await page.locator(selector+' a.button').click();
  assert.deepEqual((await events()).filter(x=>x.name==='create_letter_click').map(x=>x.params.placement),['header','hero','samples','pricing','final']);
  await page.setViewportSize({width:360,height:800});
  for(const design of ['woodland','starlight','jolly','beach','barbecue','classic']){

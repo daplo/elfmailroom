@@ -28,7 +28,7 @@ export async function renderPreview({text,design,language,width}){
  const frameInset=width*theme.frameInset;
  const frameTop=width*theme.frameTop,frameBottom=width*theme.frameBottom;
  ctx.save();ctx.strokeStyle=letterBorderInk;ctx.lineWidth=2.5;
- ctx.beginPath();ctx.moveTo(frameInset,frameTop);ctx.lineTo(frameInset,height-frameBottom);ctx.moveTo(width-frameInset,frameTop);ctx.lineTo(width-frameInset,height-frameBottom);ctx.moveTo(frameInset,frameTop);ctx.lineTo(width-frameInset,frameTop);ctx.moveTo(frameInset,height-frameBottom);ctx.lineTo(width-frameInset,height-frameBottom);ctx.stroke();
+ ctx.lineJoin='miter';ctx.beginPath();ctx.rect(frameInset,frameTop,width-frameInset*2,height-frameTop-frameBottom);ctx.stroke();
  ctx.restore();
  ctx.fillStyle=theme.accent;ctx.textAlign='center';ctx.font='8px Arial';ctx.fillText(copy.desk,width/2,top-85);
  ctx.font=`400 ${width<400?30:36}px ${letterFontFamilies.body}`;ctx.fillStyle=theme.ink;ctx.fillText(copy.santa,width/2,top-48,width-margin*2);

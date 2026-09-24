@@ -70,6 +70,9 @@ export function startAnalytics(id){
  refreshAnalyticsPage();
  trackEvent('landing_view');
  cleanup=observeLandingEvents(trackEvent);
+ window.gtag('get',id,'client_id',clientId=>window.gtag('get',id,'session_id',sessionId=>{
+  try{if(readConsent(localStorage)==='accepted'&&/^\d+\.\d+$/.test(clientId)&&Number.isSafeInteger(Number(sessionId)))sessionStorage.setItem('elf-ga-session',JSON.stringify({clientId,sessionId:Number(sessionId)}))}catch{}
+ }));
  const script=document.createElement('script');script.id='elf-analytics';script.async=true;script.src='https://www.googletagmanager.com/gtag/js?id='+id;document.head.appendChild(script);
  return true;
 }
