@@ -65,3 +65,17 @@ test('200-word letters keep their closing and signature on one page in all desig
   await task.destroy();
  }
 });
+
+test('alternate greetings for the same child are removed without removing prose or other names',()=>{
+ for(const hello of ['Hello Daniel!', 'Hi Daniel,', "G’day Daniel!"]){
+  assert.deepEqual(splitLetterGreeting('Dear daniel,\n\n'+hello+' Your cookies arrived.'),{greeting:'Dear Daniel,',body:'Your cookies arrived.'});
+ }
+ assert.equal(splitLetterGreeting('Dear Daniel,\n\nHello Sophie! Keep smiling.').body,'Hello Sophie! Keep smiling.');
+ assert.equal(splitLetterGreeting('Dear Daniel,\n\nHello from the North Pole!').body,'Hello from the North Pole!');
+});
+
+test('greeting capitalises name initials while preserving existing internal capitals',()=>{
+ for(const [name,expected] of [['daniel','Daniel'],['zoë łucja','Zoë Łucja'],['anna-marie', 'Anna-Marie'],["o’neill",'O’Neill'],['McDonald','McDonald']]){
+  assert.equal(splitLetterGreeting(`Dear ${name},\n\nChristmas is coming.`).greeting,`Dear ${expected},`);
+ }
+});

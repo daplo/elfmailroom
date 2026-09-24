@@ -1,7 +1,7 @@
 import {expiredOrder} from './retention.js';
 import {orderLanguage} from '../../../packages/shared/locales.js';
 import {createLetterPdf} from './pdf.js';
-const rendererVersion=3;
+const rendererVersion=4;
 export function migratePdfStore(db){db.exec('CREATE TABLE IF NOT EXISTS letter_pdfs(order_id TEXT NOT NULL,version INTEGER NOT NULL,pdf BLOB NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(order_id,version))');if(!db.prepare('PRAGMA table_info(letter_pdfs)').all().some(c=>c.name==='renderer_version'))db.exec('ALTER TABLE letter_pdfs ADD COLUMN renderer_version INTEGER NOT NULL DEFAULT 0');}
 export async function storedPdf(db,order){
  const current=()=>db.prepare('SELECT * FROM orders WHERE id=?').get(order.id);

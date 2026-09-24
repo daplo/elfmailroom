@@ -1,5 +1,7 @@
 import {localeCode,stationery} from './locales.js';
 
+export function capitaliseName(name){return name.trim().replace(/(^|[\s’'\-])(\p{L}+)/gu,(_,separator,word)=>separator+(separator.trim()===''&&separator&&['i','and','et','und','y','e'].includes(word)?word:word[0].toLocaleUpperCase()+word.slice(1)));}
+
 // Only separate a standalone greeting in the saved letter's language.
 // Legacy/custom letters without one must retain their complete first paragraph.
 export function splitLetterGreeting(text,language='en'){
@@ -15,5 +17,9 @@ export function splitLetterGreeting(text,language='en'){
  const words=greeting.replace(/[,!:.?]+/g,' ').trim().split(/\s+/).map(escape);
  const repeated=new RegExp('^'+words.join('[,\\s]+')+'[,!:.?]+(?:\\s+|$)','iu');
  body=body.replace(repeated,'');
- return {greeting,body};
+ const salutations={en:['Dear','Hello','Hi','Hey',"G’day","G'day"],pl:['Cześć','Witaj','Drogi','Droga','Kochany','Kochana'],de:['Hallo','Liebe','Lieber'],fr:['Bonjour','Salut','Cher','Chère'],es:['Hola','Querido','Querida']};
+ const alternatives=salutations[localeCode(language)]||salutations.en;
+ const namedGreeting=new RegExp('^(?:'+alternatives.map(escape).join('|')+')[,\\s]+'+escape(name.trim())+'[,!:.?]+(?:\\s+|$)','iu');
+ body=body.replace(namedGreeting,'');
+ return {greeting:prefix+capitaliseName(name)+suffix,body};
 }

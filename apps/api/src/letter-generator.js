@@ -1,3 +1,4 @@
+import {capitaliseName,splitLetterGreeting} from '../../../packages/shared/letter-layout.js';
 import OpenAI from 'openai';
 import {randomUUID, randomInt} from 'node:crypto';
 import {z} from 'zod';
@@ -10,7 +11,7 @@ export function createLetterGenerator({apiKey=process.env.OPENAI_API_KEY,model=p
  const openai=client||(apiKey?new OpenAI({apiKey,timeout:45000,maxRetries:1}):null);
  return async function generate(details,revision){
   if(!openai)throw new Error('generation_not_configured');
-  const child=letterDetailsSchema.parse(details);
+  const child=letterDetailsSchema.parse(details);child.name=capitaliseName(child.name);
   const response=await openai.responses.create({model,store:false,max_output_tokens:1200,instructions:GENERATION_INSTRUCTIONS+`\nRequired output language: ${letterLanguages.find(x=>x.code===(child.language==='en'?'en-GB':child.language)).prompt}. Write all paragraphs and the closing in this language, including on rewrites. Use that regional variety's spelling and vocabulary. Preserve proper names. Do not switch language based on the child's message or revision instructions.`,input:JSON.stringify({child_details:child,...(revision?{revision}:{}),creative_direction:scenes[randomInt(scenes.length)],variation_id:randomUUID()}),text:{format:{type:'json_schema',name:'santa_letter',strict:true,schema:{type:'object',properties:{paragraphs:{type:'array',items:{type:'string'}},closing:{type:'string'}},required:['paragraphs','closing'],additionalProperties:false}}}});
   if(response.status!=='completed'||!response.output_text)throw new Error('generation_incomplete');
   const content=outputSchema.parse(JSON.parse(response.output_text));
@@ -18,6 +19,7 @@ export function createLetterGenerator({apiKey=process.env.OPENAI_API_KEY,model=p
   if(body.length>4000||/https?:\/\/|www\.|<[^>]+>/i.test(body))throw new Error('generation_invalid');
   const exclusions=revision?.requests?.flatMap(request=>request.avoid||[])||[];
   if(exclusions.some(term=>body.normalize('NFKC').toLowerCase().includes(term.normalize('NFKC').toLowerCase())))throw new Error('generation_excluded_topic');
-  return {letter:`${stationery[letterLocaleCode(child.language)].greeting(child.name)}\n\n${body}`,body,model:response.model||model,responseId:response.id||null};
+  const clean=splitLetterGreeting(`${stationery[letterLocaleCode(child.language)].greeting(child.name)}\n\n${body}`,child.language);
+  return {letter:`${clean.greeting}\n\n${clean.body}`,body:clean.body,model:response.model||model,responseId:response.id||null};
  };
 }
