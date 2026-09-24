@@ -21,7 +21,7 @@ test('admin PDFs require authentication, render sample artwork and reject expire
  assert.equal(db.prepare('SELECT COUNT(*) n FROM letter_pdfs').get().n,1);
  db.prepare('UPDATE letter_pdfs SET renderer_version=0,pdf=?').run(Buffer.from('obsolete renderer'));
  const refreshed=Buffer.from(await(await fetch(url,{headers})).arrayBuffer());assert.equal(refreshed.subarray(0,5).toString(),'%PDF-');
- assert.equal(db.prepare('SELECT renderer_version FROM letter_pdfs').get().renderer_version,4);
+ assert.equal(db.prepare('SELECT renderer_version FROM letter_pdfs').get().renderer_version,5);
  db.prepare("UPDATE orders SET expires_at=? WHERE id='sample'").run(Date.now()-1);assert.equal((await fetch(url,{headers})).status,404);
  }finally{await new Promise(r=>server.close(r));db.close();}
 });

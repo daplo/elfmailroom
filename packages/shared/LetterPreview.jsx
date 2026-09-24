@@ -22,11 +22,13 @@ export async function renderPreview({text,design,language,width}){
  canvas.width=Math.ceil(width*2);canvas.height=height*2;ctx.scale(2,2);
  ctx.fillStyle=theme.background;ctx.fillRect(0,0,width,height);
  const artHeight=art.height*width/art.width;
- ctx.save();ctx.beginPath();ctx.rect(0,0,width,width*.31);ctx.clip();ctx.drawImage(art,0,0,width,artHeight);ctx.restore();
- ctx.save();ctx.beginPath();ctx.rect(0,height-footer,width,footer);ctx.clip();ctx.drawImage(art,0,height-artHeight,width,artHeight);ctx.restore();
- // Cover each source artwork's original side rule and continue one consistent frame through the writing area.
  const frameInset=width*theme.frameInset;
  const frameTop=width*theme.frameTop,frameBottom=width*theme.frameBottom;
+ ctx.save();ctx.beginPath();ctx.rect(frameInset,frameTop,width-frameInset*2,height-frameTop-frameBottom);ctx.clip();
+ ctx.save();ctx.beginPath();ctx.rect(0,0,width,width*.31);ctx.clip();ctx.drawImage(art,0,0,width,artHeight);ctx.restore();
+ ctx.save();ctx.beginPath();ctx.rect(0,height-footer,width,footer);ctx.clip();ctx.drawImage(art,0,height-artHeight,width,artHeight);ctx.restore();
+ ctx.restore();
+ // Draw the frame over the clipped artwork.
  ctx.save();ctx.strokeStyle=letterBorderInk;ctx.lineWidth=2.5;
  ctx.lineJoin='miter';ctx.beginPath();ctx.rect(frameInset,frameTop,width-frameInset*2,height-frameTop-frameBottom);ctx.stroke();
  ctx.restore();
