@@ -8,6 +8,6 @@ export function createLetterCheckout(stripe,{email,orderId,origin,returnUrl,lang
   line_items:[{quantity:1,...(priceId?{price:priceId}:{price_data:{currency:santaLetterPrice.currency,unit_amount:santaLetterPrice.amount,product_data:{name:t('Personalised Santa Letter'),description:t(digitalNotice)}}})}],
   consent_collection:{terms_of_service:'required'},billing_address_collection:'auto',
   adaptive_pricing:{enabled:false},allow_promotion_codes:false,
-  metadata:{orderId},success_url:returnUrl||`${origin}/write/?order=${orderId}`,cancel_url:`${origin}/write/?cancelled=1`
+  metadata:{orderId},payment_intent_data:{metadata:{orderId}},success_url:returnUrl||`${origin}/write/?order=${orderId}`,cancel_url:`${origin}/write/?cancelled=1`
  },{idempotencyKey:orderId});
 }

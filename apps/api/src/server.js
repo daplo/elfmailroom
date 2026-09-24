@@ -1,3 +1,4 @@
+import {createTelegramNotifications} from './telegram.js';
 import {migrateRetention,purgeExpiredLetters,expiredOrder,retentionDeadline,markOrderPaid} from './retention.js';
 import express from 'express';
 import {mountStaticFiles} from './static-files.js';
@@ -39,13 +40,14 @@ const emailEnabled=emailConfigured();
 if(emailEnabled)createEmailQueue({db,send:createEmailSender({pdf:(_letter,_design,order)=>storedPdf(db,order)})}).start();
 const generationQueue=createGenerationQueue({db,generate:createLetterGenerator()});
 if(process.env.OPENAI_API_KEY)generationQueue.start();
+const telegram=createTelegramNotifications({db});telegram.start();
 const stripe=process.env.STRIPE_SECRET_KEY?new Stripe(process.env.STRIPE_SECRET_KEY):null;
 const origin=process.env.PUBLIC_URL||'http://localhost:5173';
 const policyState=publishedPolicies(process.env,path.join(root,'apps/landing/dist/legal-manifest.json'));
 const policies=policyState.config;
 const ready=Boolean(policyState.ready&&linkConfigured()&&process.env.OPENAI_API_KEY&&stripe&&process.env.STRIPE_WEBHOOK_SECRET&&process.env.SALES_ENABLED==='true'&&process.env.PRIVACY_URL&&process.env.TERMS_URL);
 app.use(helmet({contentSecurityPolicy:false,referrerPolicy:{policy:'no-referrer'}}));
-app.post('/api/webhook',express.raw({type:'application/json'}),(req,res)=>{if(!stripe||!process.env.STRIPE_WEBHOOK_SECRET)return res.sendStatus(503);try{const event=stripe.webhooks.constructEvent(req.body,req.headers['stripe-signature'],process.env.STRIPE_WEBHOOK_SECRET);if(['checkout.session.completed','checkout.session.async_payment_succeeded'].includes(event.type)){const session=event.data.object;if(session.payment_status==='paid')markOrderPaid(db,session.metadata.orderId,session.id,event.created*1000);}res.json({received:true});}catch{res.status(400).json({error:'Invalid webhook signature.'});}});
+app.post('/api/webhook',express.raw({type:'application/json'}),(req,res)=>{if(!stripe||!process.env.STRIPE_WEBHOOK_SECRET)return res.sendStatus(503);try{const event=stripe.webhooks.constructEvent(req.body,req.headers['stripe-signature'],process.env.STRIPE_WEBHOOK_SECRET);if(['checkout.session.completed','checkout.session.async_payment_succeeded'].includes(event.type)){const session=event.data.object;if(session.payment_status==='paid')markOrderPaid(db,session.metadata.orderId,session.id,event.created*1000);}telegram.event(event);res.json({received:true});}catch{res.status(400).json({error:'Invalid webhook signature.'});}});
 app.use(express.json({limit:'24kb'}));
 app.use('/api',(req,res,next)=>{res.set('X-Robots-Tag','noindex, nofollow');next();});
 app.use('/api',rateLimit({windowMs:60000,limit:90,standardHeaders:'draft-8',legacyHeaders:false}));
@@ -77,7 +79,7 @@ app.post('/api/checkout',async(req,res)=>{
  const id=randomUUID();const {details,design,email}=parsed.data;
  db.prepare('INSERT INTO orders(id,user_id,letter,design,access_token,child_details,buyer_email,email_status,link_token_hash,created_at,amount_cents,terms_version,terms_accepted_at,terms_language,terms_snapshot) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(id,user(req)?.id||'guest','',design,hash(token),JSON.stringify(details),email,emailEnabled?'queued':'not_requested',tokenHash(purchaseToken(id)),Date.now(),santaLetterPrice.amount,policyVersion,Date.now(),parsed.data.uiLanguage,policyDocument('terms',parsed.data.uiLanguage,policies,{origin}));
  db.prepare('UPDATE orders SET expires_at=? WHERE id=?').run(retentionDeadline(Date.now()),id);
- try{const checkout=await createLetterCheckout(stripe,{email,language:parsed.data.uiLanguage,orderId:id,origin,returnUrl:purchaseUrl(id,{origin})});db.prepare('UPDATE orders SET checkout_id=? WHERE id=?').run(checkout.id,id);res.json({url:checkout.url,purchaseUrl:purchaseUrl(id,{origin})});}catch{res.status(502).json({error:'Checkout could not open. Please try again in a moment.'});}
+ try{const checkout=await createLetterCheckout(stripe,{email,language:parsed.data.uiLanguage,orderId:id,origin,returnUrl:purchaseUrl(id,{origin})});db.prepare('UPDATE orders SET checkout_id=? WHERE id=?').run(checkout.id,id);telegram.enqueue('started:'+checkout.id,'started',id,checkout.livemode);res.json({url:checkout.url,purchaseUrl:purchaseUrl(id,{origin})});}catch{telegram.enqueue('unavailable:'+id,'unavailable',id,/^(sk|rk)_live_/.test(process.env.STRIPE_SECRET_KEY||''));res.status(502).json({error:'Checkout could not open. Please try again in a moment.'});}
 });
 app.use('/api/orders',(req,res,next)=>{res.set('Cache-Control','no-store');next();});
 app.get('/api/orders/:id',async(req,res)=>{

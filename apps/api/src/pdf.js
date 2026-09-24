@@ -43,8 +43,6 @@ export function createLetterPdf(letter,design='classic',language='en'){
    // Signing area is reserved above the footer artwork, outside the body text margin.
    doc.page.margins.bottom=290;
    doc.font('Signature').fontSize(32).fillColor(theme.accent).text(copy.signature||copy.santa,58,signY,{lineBreak:false});
-   if(design!=='jolly'){doc.circle(515,signY+17,14).fill(theme.accent);doc.circle(515,signY+17,11).lineWidth(.7).stroke(theme.border);
-   doc.font('Signature').fontSize(18).fillColor('#fffdf5').text('S',506,signY+3,{lineBreak:false});}
    const range=doc.bufferedPageRange();
    for(let i=0;i<range.count;i++){
     doc.switchToPage(i);doc.page.margins.bottom=0;
